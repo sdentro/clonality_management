@@ -1,13 +1,8 @@
 import sys, argparse, stat, os
 from path import path
 
+from clonalityPipelineConfig import PERL, ALLELECOUNTER, G1000LOCI
 from generateClonalityPipeline_util import read_item_list, match_sample_to_file
-
-
-# Pointers to external files
-PERL = 'perl-5.16.3 -I /software/CGP/pancan/lib/perl5'
-ALLELECOUNTER = '/software/CGP/pancan/bin/alleleCounter.pl'
-G1000LOCI = '/lustre/scratch110/sanger/dw9/haplotype_pipeline/1000genomesloci2012_chr$LSB_JOBINDEX.txt'
 
 def generateAlleleFrequencyScripts(infile, rundir, bamdir, locidir, logdir, isArrayJob):
     '''

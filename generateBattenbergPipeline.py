@@ -1,5 +1,6 @@
 import sys, argparse
 from path import path
+from clonalityPipelineConfig import IMPUTEFILESDIR, G1000LOCIDIR
 from generateClonalityPipeline_util import read_item_list, match_tumour_normal
 '''
 RUN_DIR=/lustre/scratch110/sanger/sd11/epitax/battenberg/PD7404a
@@ -23,9 +24,6 @@ MAX_PLOIDY=4.8
 MIN_RHO=0.1
 MIN_GOODNESS_OF_FIT=0.63
 BALANCED_THRESHOLD=0.51
-
-IMPUTEFILESDIR='/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_impute'
-G1000LOCIDIR='/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_1000genomesloci2012'
 
 def generateBattenbergConfig(tumourname, normalname, run_dir, pipeline_dir, log_dir, is_male=IS_MALE, platform_gamma=PLATFORM_GAMMA, phasing_gamma=PHASING_GAMMA, segmentation_gamma=SEGMENTATION_GAMMA, clonality_dist_metric=CLONALITY_DIST_METRIC, ascat_dist_metric=ASCAT_DIST_METRIC, min_ploidy=MIN_PLOIDY, max_ploidy=MAX_PLOIDY, min_rho=MIN_RHO, min_goodness_of_fit=MIN_GOODNESS_OF_FIT, balanced_threshold=BALANCED_THRESHOLD, imputeinfofile=IMPUTEINFOFILE, impute_exe=IMPUTE_EXE, problemlocifile=PROBLEMLOCIFILE):
 	config_file = path.joinpath(run_dir, 'params'+tumourname+'.txt')

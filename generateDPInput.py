@@ -2,10 +2,10 @@ import sys, argparse
 from path import path
 from util import merge_items, run_command
 
+from clonalityPipelineConfig import GETDIRICHLETPROCESINFO_SCRIPT
 from generateClonalityPipeline_util import read_item_list
 
 #  R CMD BATCH '--no-restore-data --args PD7404a ../battenberg/PD7404a/PD7404a_rho_and_psi.txt ../haplotype/mutation_loci/PD7404a.loci ../battenberg/PD7404a/PD7404a_subclones.txt ../haplotype/mutations/PD7404a_alleleFrequencies.txt female' ~/repo/dirichlet/GetDirichletProcessInfo.R PD7404a.Rout
-GETDIRICHLETPROCESINFO_SCRIPT = "~/repo/dirichlet/GetDirichletProcessInfo.R"
 
 def generateDPInputs(infile, rundir, ismale, outdir):
     samplenames = read_item_list(infile)
