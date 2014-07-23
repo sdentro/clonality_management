@@ -10,3 +10,7 @@ G1000LOCI = '/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_100
 
 # generateDPInput
 GETDIRICHLETPROCESINFO_SCRIPT = "~/repo/dirichlet/GetDirichletProcessInfo.R"
+
+# generateDirichlet1D
+RHO_AND_PSI_REGEX = '*rho_and_psi*'
+DIRICHLET_1D_RUNSCRIPT = "~/repo/dirichlet/dp_1d/RunDirichlet_1D_pipeline.R"

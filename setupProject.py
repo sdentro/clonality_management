@@ -8,6 +8,9 @@ def setupProject(basedir):
     path.joinpath(basedir,'variants').makedirs()
     path.joinpath(basedir,'haplotype','logs').makedirs()
     path.joinpath(basedir,'dirichlet_input','logs').makedirs()
+    path.joinpath(basedir,'dirichlet_1d','logs').makedirs()
+    path.joinpath(basedir,'dirichlet_nd','logs').makedirs()
+    path.joinpath(basedir,'dirichlet_tree','logs').makedirs()
 
     print("")
     print("Now the following must be done:")

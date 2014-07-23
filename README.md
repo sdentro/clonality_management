@@ -24,8 +24,16 @@ python ~/repo/generateClonalityPipeline/generateAlleleFrequencyScripts.py -i /lu
 
 ### Battenberg
 > Don't forget to copy the GetAlleleFrequencies output for both tumour and normal into the sample Battenberg directory
+
 python ~/repo/generateClonalityPipeline/generateBattenbergPipeline.py -i /lustre/scratch110/sanger/sd11/epitax/samplelist.small.txt -t a -n b -r /lustre/scratch110/sanger/sd11/epitax/battenberg/ -p ~/repo/battenberg/ --ismale /lustre/scratch110/sanger/sd11/epitax/ismale.small.txt
+
+### Create symlinks to AlleleFrequencies files
+python ~/repo/generateClonalityPipeline/generateAlleleFrequencySymlinks.py -i /lustre/scratch110/sanger/sd11/epitax/samplelist.genome.2del.txt -s /lustre/scratch110/sanger/sd11/epitax/haplotype/ -o /lustre/scratch110/sanger/sd11/epitax/battenberg/ --out_sample_subdir -t a -n b
 
 ### Generate dp input
 > Note: this requires a sample and ismale list of just the tumours!
+
  python ~/repo/generateClonalityPipeline/generateDPInput.py -s /lustre/scratch110/sanger/sd11/epitax/samplelist.tumours.txt --ismale /lustre/scratch110/sanger/sd11/epitax/ismale.tumours.txt -r /lustre/scratch110/sanger/sd11/epitax/ -o /lustre/scratch110/sanger/sd11/epitax/dirichlet_input/
+ 
+### Generate 1D Dirichlet Process pipeline
+python ~/repo/generateClonalityPipeline/generateDirichlet1D.py -i /lustre/scratch110/sanger/sd11/epitax/samplelist.tumours.txt -b /lustre/scratch110/sanger/sd11/epitax/battenberg/ -r /lustre/scratch110/sanger/sd11/epitax/dirichlet_1d/ -d /lustre/scratch110/sanger/sd11/epitax/dirichlet_input/ --no_iters 1300 --no_iters_burn_in 300
