@@ -14,3 +14,6 @@ GETDIRICHLETPROCESINFO_SCRIPT = "~/repo/dirichlet/GetDirichletProcessInfo.R"
 # generateDirichlet1D
 RHO_AND_PSI_REGEX = '*rho_and_psi*'
 DIRICHLET_1D_RUNSCRIPT = "~/repo/dirichlet/dp_1d/RunDirichlet_1D_pipeline.R"
+
+# generateDPDataFile
+DIRICHLET_SUBDIR_NAME = "dirichlet"

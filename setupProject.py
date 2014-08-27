@@ -1,16 +1,18 @@
 import sys, argparse
 from path import path
+from clonalityPipelineConfig import DIRICHLET_SUBDIR_NAME
+
 
 def setupProject(basedir):
     print("Making output directories")
     path.joinpath(basedir,'bam').makedirs()
     path.joinpath(basedir,'battenberg').makedirs()
     path.joinpath(basedir,'variants').makedirs()
-    path.joinpath(basedir,'haplotype','logs').makedirs()
+    path.joinpath(basedir,'haplotype').makedirs()
+    path.joinpath(basedir,'haplotype','mutation_loci', 'logs').makedirs()
+    path.joinpath(basedir,'haplotype','G1000', 'logs').makedirs()
     path.joinpath(basedir,'dirichlet_input','logs').makedirs()
-    path.joinpath(basedir,'dirichlet_1d','logs').makedirs()
-    path.joinpath(basedir,'dirichlet_nd','logs').makedirs()
-    path.joinpath(basedir,'dirichlet_tree','logs').makedirs()
+    path.joinpath(basedir,DIRICHLET_SUBDIR_NAME,'logs').makedirs()
 
     print("")
     print("Now the following must be done:")
