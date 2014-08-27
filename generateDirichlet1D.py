@@ -18,9 +18,10 @@ def generateDirichlet1D(infile, bb_dir, run_dir, dirichlet_indir, no_iters, no_i
         fout.write("bsub -q long -M 5000 -R 'span[hosts=1] select[mem>5000] rusage[mem=5000]' -o "+
                    path.joinpath(run_dir, 'logs', sample+".%J.out")+" -e "+
                    path.joinpath(run_dir, 'logs', sample+".%J.err ")+
-                   "-J "+sample+"_1D"+
+                   "-J "+sample+"_1D "+
                    "Rscript "+DIRICHLET_1D_RUNSCRIPT+" "+
                    str(counter)+" "+str(no_iters)+" "+str(no_iters_burn_in)+" "+dirichlet_indir+" "+purity_file+"\n")
+	counter+=1
     fout.close()
 
     
