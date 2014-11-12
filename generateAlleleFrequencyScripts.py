@@ -1,7 +1,7 @@
 import sys, argparse, stat, os
 from path import path
 
-from clonalityPipelineConfig import PERL, ALLELECOUNTER, G1000LOCI
+from clonalityPipelineConfig import PERL, ALLELECOUNTER, ALLELECOUNTER_BAQ, ALLELECOUNTER_MAQ, G1000LOCI
 from generateClonalityPipeline_util import read_sample_infile, match_sample_to_file
 
 def generateAlleleFrequencyScripts(infile, rundir, bamdir, locidir, logdir, isArrayJob, dotumours, donormals):
@@ -41,9 +41,9 @@ def generateAlleleFrequencyScript(samplename, rundir, bamdir, locifile, logdir, 
     samplecommands = open(scriptfile,'w')
     samplecommands.write('#$LSB_JOBINDEX\n')
     if isArrayJob:
-        samplecommands.write(PERL+' '+ALLELECOUNTER+' -b '+path.joinpath(bamdir,samplename+'.bam')+ ' -o '+path.joinpath(rundir,samplename+'_alleleFrequencies_chr$LSB_JOBINDEX.txt')+ ' -l '+locifile +' -m 20\n')
+        samplecommands.write(PERL+' '+ALLELECOUNTER+' -b '+path.joinpath(bamdir,samplename+'.bam')+ ' -o '+path.joinpath(rundir,samplename+'_alleleFrequencies_chr$LSB_JOBINDEX.txt')+ ' -l '+locifile +' -m ' +str(ALLELECOUNTER_BAQ)+ ' -q ' + str(ALLELECOUNTER_MAQ) + '\n')
     else:
-        samplecommands.write(PERL+' '+ALLELECOUNTER+' -b '+path.joinpath(bamdir,samplename+'.bam')+ ' -o '+path.joinpath(rundir,samplename+'_alleleFrequencies.txt')+ ' -l '+locifile +' -m 20\n')
+        samplecommands.write(PERL+' '+ALLELECOUNTER+' -b '+path.joinpath(bamdir,samplename+'.bam')+ ' -o '+path.joinpath(rundir,samplename+'_alleleFrequencies.txt')+ ' -l '+locifile +' -m ' +str(ALLELECOUNTER_BAQ)+ ' -q ' + str(ALLELECOUNTER_MAQ) + '\n')
     samplecommands.write('exit $?\n')
     samplecommands.close()
     st = os.stat(scriptfile)
@@ -64,7 +64,7 @@ def main(argv):
     parser.add_argument("--log", type=str, help="Full path to directory where log files should go")
     parser.add_argument("--nonormals", action='store_true', help='Supply this when scripts should NOT be created for normals')
     parser.add_argument("--notumours", action='store_true', help='Supply this when scripts should NOT be created for tumours')
-#     parser.add_argument("--isarray", dest='isarray', action='store_true', help='Supply this option when submitting an array job')
+    #parser.add_argument("--isarray", dest='isarray', action='store_true', help='Supply this option when submitting an array job')
     parser.set_defaults(nonormals=False, notumours=False)
     args = parser.parse_args()
 

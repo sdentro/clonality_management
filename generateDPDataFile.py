@@ -12,14 +12,18 @@ def generateDPDataFile(proj_name, infile, bb_dir, dp_in_dir, run_dir):
     tumour2purity = getTumourPurity(ss, bb_dir, run_dir)
     
     # Create an inventory of all available dp input files
-    dp_in_files = np.array(path.listdir(dp_in_dir, "*.txt"))
+    dp_in_files = np.array(path(dp_in_dir).listdir("*.txt"))
     
-    outfile = open(path.joinpath(run_dir, proj_name+".txt"))    
-    outfile.write("sample\tsubsample\tdatafile\tcellularity")
+    outfile = open(path.joinpath(run_dir, proj_name+".txt"), 'w')    
+    outfile.write("sample\tsubsample\tdatafile\tcellularity\n")
     for sample in ss.getSamplenames():
         for tumour in ss.getTumours(sample):
+            print(dp_in_dir)
             dp_in_file = dp_in_files[np.array([tumour in item for item in dp_in_files])]
-            outfile.write(sample+"\t"+tumour+"\t"+dp_in_file+"\t"+tumour2purity[tumour])
+            if not len(dp_in_file) == 1:
+                print("Found different than expected matches for "+tumour)
+                continue
+            outfile.write(sample+"\t"+tumour+"\t"+path(dp_in_file[0]).basename()+"\t"+tumour2purity[tumour]+"\n")
     outfile.close()
         
 
@@ -37,13 +41,25 @@ def getTumourPurity(ss, bb_dir, run_dir):
         for tumour in ss.getTumours(sample): # bb is run as first normal against all tumours
             sample_dir = normal+"_vs_"+tumour
         
-            if len(bb_dirs[np.array([sample_dir in item for item in bb_dirs])]) > 1:
-                print("Found more than one Battenberg dir for sample "+sample_dir)
-                sys.exit(1)
-                
-            indir = bb_dirs[np.array([sample_dir in item for item in bb_dirs])][0] # Should yield only a single dir
-            rho_and_psi = path(indir).listdir(RHO_AND_PSI_REGEX)[0] # Should yield only a single file
-            sample2purity[tumour] = getPurityPerSample(rho_and_psi)
+        # This should be fixed properly
+        
+        
+#             if len(bb_dirs[np.array([sample_dir in item for item in bb_dirs])]) > 1:
+#                 print("Found more than one Battenberg dir for sample "+sample_dir)
+#                 sys.exit(1)
+#                 
+#             indir = bb_dirs[np.array([sample_dir in item for item in bb_dirs])][0] # Should yield only a single dir
+            
+            indir = bb_dir
+#             rho_and_psi = path(indir).listdir(RHO_AND_PSI_REGEX)[0] # Should yield only a single file
+            listing = np.array(path(indir).listdir(RHO_AND_PSI_REGEX))
+            rho_and_psi = listing[np.array([tumour in filename for filename in listing])] # Should yield only a single file
+            
+            if not len(rho_and_psi) == 1:
+                print("Found different than expected number of matches for "+tumour)
+                continue
+            
+            sample2purity[tumour] = getPurityPerSample(rho_and_psi[0])
         
     return sample2purity
 
@@ -72,7 +88,7 @@ def main(argv):
 #     parser.add_argument("--no_iters_burn_in", type=int, help="Number of iterations used for burn in.")
     
     args = parser.parse_args()
-    generateDPDataFile(args.i, args.b, args.r, args.d)
+    generateDPDataFile(args.p, args.i, args.b, args.d, args.r)
     
 if __name__ == '__main__':
     main(sys.argv[0:])

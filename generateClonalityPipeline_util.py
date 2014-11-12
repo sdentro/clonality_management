@@ -21,7 +21,7 @@ class SampleSheet(object):
         '''
         tumours_list = list()
         for v in  self._sample2tumours.values():
-            tumours_list.append(v)
+            tumours_list.extend(v)
         return tumours_list
     
     def getAllNormalsList(self):
@@ -30,7 +30,7 @@ class SampleSheet(object):
         '''
         normals_list = list()
         for v in  self._sample2normals.values():
-            normals_list.append(v)
+            normals_list.extend(v)
         return normals_list
     
     def getTumours(self, samplename):

@@ -23,10 +23,6 @@ def generateDPInputs(infile, rundir, outdir):
             cmd = generateDPInput(normal, tumour, rundir, sex, outdir)
             f.write(cmd+"\n")
     
-#     f = open(path.joinpath(outdir, "RunCommands.sh"),'w')
-#     for item in zip(samplenames, ismale):
-#         cmd = generateDPInput(item[0], rundir, item[1], outdir)
-#         f.write(cmd+"\n")
     f.close()
 
 def generateDPInput(normal, tumour, rundir, sex, outdir):
@@ -35,9 +31,14 @@ def generateDPInput(normal, tumour, rundir, sex, outdir):
            "-o "+path.joinpath(outdir, 'logs',tumour+".%J.out"),
            "R CMD BATCH '--no-restore-data --args",
            tumour,
-           path.joinpath(rundir,'battenberg/'+normal+"_vs"+tumour,normal+"_vs"+tumour+'_rho_and_psi.txt'),
+           
+           this should be properly fixed
+           
+           #path.joinpath(rundir,'battenberg/'+normal+"_vs"+tumour,normal+"_vs"+tumour+'_rho_and_psi.txt'),
+           path.joinpath(rundir,'battenberg/',tumour+'_rho_and_psi.txt'),
            path.joinpath(rundir,'haplotype/mutation_loci',tumour+'.loci'),
-           path.joinpath(rundir,'battenberg/'+normal+"_vs"+tumour,normal+"_vs"+tumour+'_subclones.txt'),
+           #path.joinpath(rundir,'battenberg/'+normal+"_vs"+tumour,normal+"_vs"+tumour+'_subclones.txt'),
+           path.joinpath(rundir,'battenberg/',tumour+'_subclones.txt'),
            path.joinpath(rundir,'haplotype/mutation_loci',tumour+'_alleleFrequencies.txt'),
            sex,
            outdir,
@@ -53,11 +54,12 @@ def main(argv):
     parser.add_argument("-i", required=True, type=str, help="A sample sheet")
     parser.add_argument("-r", required=True, type=str, help="Base dir where pipelines were run")
     parser.add_argument("-o", required=True, type=str, help="Directory where to save the output")
-#     parser.add_argument("--ismale", required=True, type=str, help='File containing whether each samplename is male or female.')
+    parser.add_argument("--bb_subdir", action='store_true', help="Give this flag when BB output is stored in a subdir.")
+    parser.add_argument("--n_vs_t", )
     
     args = parser.parse_args()
     
-    generateDPInputs(args.s, args.r, args.o)
+    generateDPInputs(args.i, args.r, args.o)
 
 if __name__ == '__main__':
     main(sys.argv[0:])
