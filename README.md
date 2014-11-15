@@ -2,7 +2,7 @@
 A script that will create an LSF based analysis pipeline
 
 ### Make project directory
-mkdir /lustre/scratch110/sanger/sd11/epitax
+mkdir /lustre/scratch110/sanger/sd11/dp_test
 
 ### Create project setup
 python ~/repo/generateClonalityPipeline/setupProject.py -b /lustre/scratch110/sanger/sd11/dp_test
@@ -73,3 +73,65 @@ python ~/repo/generateClonalityPipeline/generateAlleleFrequencySymlinks.py -i /l
 
 
 TODO: Write parser for ICGC file and a modifier that morphs the ICGC layout into something that fits with this layout
+
+
+## Preprocessing
+mkdir /lustre/scratch110/sanger/sd11/dp_test
+python ~/repo/generateClonalityPipeline/setupProject.py -b /lustre/scratch110/sanger/sd11/dp_test
+
+cd /lustre/scratch110/sanger/sd11/dp_test/bam
+ln -s /nfs/cancer_trk0019/00000071/187863.bam PD7404a.bam
+ln -s /nfs/cancer_trk0016/00000057/187864.bam.bai PD7404a.bam.bai
+ln -s /nfs/cancer_trk0021/00000076/187866.bam PD7404b.bam
+ln -s /nfs/cancer_trk0016/00000057/187867.bam.bai PD7404b.bam.bai
+find $PWD/ | grep -v bai | grep "a\.bam" > ../samplesheet/input/bam_tumour.txt
+find $PWD/ | grep -v bai | grep "b\.bam" > ../samplesheet/input/bam_tumour.txt
+ls $PWD/ | grep -v bai | grep "a\.bam" | sed 's/.bam//' > ../samplesheet/input/id_tumour.txt
+ls $PWD/ | grep -v bai | grep "b\.bam" | sed 's/.bam//' > ../samplesheet/input/id_normal.txt
+
+cd ../battenberg
+ln -s /lustre/scratch110/sanger/sd11/epitax/battenberg/PD7404a PD7404a
+echo $PWD/PD7404a > ../samplesheet/input/bb_dirs.txt
+
+cd ../variants
+ln -s /lustre/scratch110/sanger/sd11/epitax/variants/filtered_vcf/PD7404a.filt.vcf.gz PD7404a.filt.vcf.gz
+
+find $PWD | grep gz > ../samplesheet/input/variants.txt
+echo "female" > ../samplesheet/input/gender.txt
+echo "PD7404a" > ../samplesheet/input/samplelist.txt
+
+## Create samplesheet
+cd ../samplesheet
+python ~/repo/generateClonalityPipeline/generateSamplesheet.py -s input/samplelist.txt --bt input/bam_tumour.txt --idt input/id_tumour.txt --bn input/bam_normal.txt --idn input/id_normal.txt -x input/gender.txt -v input/variants.txt -b input/bb_dirs.txt -o output/epitax_samplesheet.txt
+
+## Setup BB pipeline (optional)
+TODO
+
+## Create preprocessing pipeline
+cd ../
+### With samplesheet - it's possible to overwrite the bb dirs column by supplying -b with a list of bb dirs!
+python ~/repo/dirichlet_preprocessing/generate_inputfile.py --ss samplesheet/output/epitax_samplesheet.txt -o dirichlet_preprocessing/input/epitax.txt
+### Without samplesheet
+python ~/repo/dirichlet_preprocessing/generate_inputfile.py -s samplesheet/input/id_tumour.txt -b samplesheet/input/bb_dirs.txt -v samplesheet/input/variants.txt -x samplesheet/input/gender.txt --bam samplesheet/input/bam_tumour.txt -o dirichlet_preprocessing/input/epitax.txt
+
+cd dirichlet_preprocessing
+python ~/repo/dirichlet_preprocessing/generatePreprocessingPipeline.py -s input/epitax.txt -r output
+./RunCommands.sh
+python ~/repo/dirichlet_preprocessing/check_logs.py -s ../samplesheet/input/id_tumour.txt -r $PWD/output
+
+cp dirichlet_preprocessing/output/*/*allDirichlet* dirichlet_input/
+
+python ~/repo/generateClonalityPipeline/generateDPDataFile.py -p dp_test -i /lustre/scratch110/sanger/sd11/dp_test/samplesheet.txt -b /lustre/scratch110/sanger/sd11/dp_test/battenberg/ -d /lustre/scratch110/sanger/sd11/dp_test/dirichlet_input/ -r /lustre/scratch110/sanger/sd11/dp_test/dirichlet/
+
+### Create the QC input script
+python ~/repo/generateClonalityPipeline/generateQCrunScript.py -i /nfs/users/nfs_c/cgppipe/pancancer/workspace/sd11/variant_calling_pilot_50_broad/dirichlet/icgc_train1_broad.txt -d /nfs/users/nfs_c/cgppipe/pancancer/workspace/sd11/variant_calling_pilot_50_broad/dirichlet_input/ -q /nfs/users/nfs_c/cgppipe/pancancer/workspace/sd11/variant_calling_pilot_50_broad/qc/
+### Create the wrappers
+python ~/repo/generateClonalityPipeline/generateDPrunScript.py -i /lustre/scratch112/sanger/cgppipe/PanCancerDownloads/workspace/sd11/variant_calling_pilot_50_broad/dirichlet/icgc_train1_broad.txt -d /lustre/scratch112/sanger/cgppipe/PanCancerDownloads/workspace/sd11/variant_calling_pilot_50_broad/dirichlet_input/ -r /lustre/scratch112/sanger/cgppipe/PanCancerDownloads/workspace/sd11/variant_calling_pilot_50_broad/dirichlet -p icgc
+
+Remove:
+alleleFrequency scripts
+generateDPInput
+
+Add:
+cgpBB
+checks for required programs 

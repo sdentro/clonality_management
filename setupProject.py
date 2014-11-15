@@ -14,6 +14,7 @@ def setupProject(basedir):
     path.joinpath(basedir,'dirichlet_preprocessing', 'output').makedirs()
     path.joinpath(basedir,'dirichlet_input','logs').makedirs()
     path.joinpath(basedir,DIRICHLET_SUBDIR_NAME,'logs').makedirs()
+    path.joinpath(basedir,'qc').makedirs()
 
     print("")
     print("Now the following must be done:")

@@ -3,14 +3,21 @@ import numpy as np
 
 class SampleSheet(object):
     
-    def __init__(self, sample2normals, sample2tumours, sample2sex):
-        assert len(sample2sex.keys()) == len(sample2normals.keys()) and len(sample2sex.keys()) == len(sample2tumours.keys()), "SampleSheet: Received mappings do not contain all samples"
+    def __init__(self, sample2normals, sample2tumours, sample2sex, sample2normal_bam, sample2tumour_bam, sample2bb_dir, sample2variants):
+        assert len(sample2sex.keys()) == len(sample2normals.keys()) and len(sample2sex.keys()) == len(sample2tumours.keys()) and \
+            len(sample2sex.keys()) == len(sample2normal_bam.keys()) and len(sample2sex.keys()) == len(sample2tumour_bam.keys()) and \
+            len(sample2sex.keys()) == len(sample2bb_dir.keys()) and len(sample2sex.keys()) == len(sample2variants.keys()), "SampleSheet: Received mappings do not contain all samples"
         for samplename in sample2sex.keys():
-            assert samplename in sample2normals.keys() and samplename in sample2tumours.keys(), "SampleSheet: Received mappings do not contain all samples"
+            assert samplename in sample2normals.keys() and samplename in sample2tumours.keys() and samplename in sample2normal_bam and \
+            samplename in sample2tumour_bam and samplename in sample2bb_dir and samplename in sample2variants, "SampleSheet: Received mappings do not contain all samples"
         
         self._sample2normals = sample2normals
         self._sample2tumours = sample2tumours
         self._sample2sex = sample2sex
+        self._sample2normal_bam = sample2normal_bam
+        self._sample2tumour_bam = sample2tumour_bam
+        self._sample2bb_dir = sample2bb_dir
+        self._sample2variants = sample2variants
 
     def getSamplenames(self):
         return self._sample2tumours.keys()
@@ -52,27 +59,44 @@ def read_sample_infile(infile):
     Creates and returns a SampleSheet object.
     '''
     f = open(infile, 'r')
-    
-    normals = dict()
-    tumours = dict()
+    tumour_ids = dict()
+    tumour_bam = dict()
+    normal_ids = dict()
+    normal_bam = dict()
+    bb_dir = dict()
     sex = dict()
+    variants = dict()
     
     for line in f:
         l = line.strip()
         if l.startswith('#'): continue
         
-        c1, c2, c3, c4 = l.split("\t")
+        c1, c2, c3, c4, c5, c6, c7, c8 = l.split("\t")
         
-        if c1 in normals.keys():
-            print("Item "+c1+" found more than once in input file")
-            sys.exit(1)
-        sex[c1] = c2
-        normals[c1] = c3.split(",")
-        tumours[c1] = c4.split(",")
+        if c1 in normal_ids.keys():
+            # Case add new tumour/normal to existing sample
+            #print("Item "+c1+" found more than once in input file")
+            #sys.exit(1)
+            tumour_ids[c1] = tumour_ids[c1] + c2
+            tumour_bam[c1] = tumour_bam[c1] + c3
+            normal_ids[c1] = normal_ids[c1] + c4
+            normal_bam[c1] = normal_bam[c1] + c5
+            bb_dir[c1] = bb_dir[c1] + c6
+            sex[c1] = sex[c1] + c7
+            variants[c1] = variants[c1] + c8
+        else:
+            # Case new sample
+            tumour_ids[c1] = [c2]
+            tumour_bam[c1] = [c3]
+            normal_ids[c1] = [c4]
+            normal_bam[c1] = [c5]
+            bb_dir[c1] = [c6]
+            sex[c1] = [c7]
+            variants[c1] = [c8]
     
     f.close()
     
-    ss = SampleSheet(normals, tumours, sex)
+    ss = SampleSheet(normal_ids, tumour_ids, sex, normal_bam, tumour_bam, bb_dir, variants)
         
     return ss
 
