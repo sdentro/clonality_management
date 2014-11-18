@@ -1,6 +1,7 @@
 import os, stat, sys, argparse
 from path import path
 from util import merge_items
+from generateClonalityPipeline_util import read_sample_infile, generateBsubCmd, writeSimpleShellScript
 
 samplename = "PD7404a"
 bam_file = "/lustre/scratch110/sanger/sd11/epitax/bam/PD7404a.bam"
@@ -23,54 +24,6 @@ for line in open(CHROMS_FILE, 'r'):
 
 no_aut_chroms = len(chroms)
 no_chroms = len(chroms) + len(sex_chroms)
-
-
-def generateBsubCmd(jobname, logdir, cmd, queue="normal", mem=1, depends=None, isArray=False, threads=None):
-    '''
-    Transforms the cmd into a bsub command with the supplied parameters.
-    '''
-    bcmd = merge_items(["bsub","-q", queue, "-J \""+jobname+"\""])
-    
-    if isArray:
-        bcmd = merge_items([bcmd, "-o", path.joinpath(logdir, jobname)+".%J.%I.out", "-e", path.joinpath(logdir, jobname+".%J.%I.err")])
-    else:
-        bcmd = merge_items([bcmd, "-o", path.joinpath(logdir, jobname)+".%J.out", "-e", path.joinpath(logdir, jobname+".%J.err")])
-
-    mem = str(mem)+"000"
-    bcmd = merge_items([bcmd, "-M", mem, "-R", "'span[hosts=1] select[mem>" + mem + "] rusage[mem=" + mem + "]'"])
-
-    if depends is not None:
-        depends_str = map(lambda x: "done("+x+")", depends)
-        depends_str = "&&".join(depends_str)    
-        bcmd = merge_items([bcmd, "-w\""+depends_str+"\""])
-        
-                
-    if threads is not None:
-        bcmd = merge_items([bcmd, "-n", str(threads)])
-
-    bcmd = merge_items([bcmd, "'"+cmd+"'"])
-
-    return(bcmd)
-
-def writeSimpleShellScript(rundir, scriptname, cmds):
-    '''
-    Creates a simple script with the commands specified in cmds contained within.
-    This script works with jobarrays. 
-    Note: It returns the status of the last run command.
-    '''
-    #scriptfile = path.joinpath(rundir, 'GetAlleleFrequenciesFromBAMByChromosome'+samplename+'.sh')
-    scriptfile = path.joinpath(rundir, scriptname)
-    samplecommands = open(scriptfile,'w')
-    samplecommands.write('#$LSB_JOBINDEX\n')
-    for item in cmds:
-        samplecommands.write(item+"\n")
-
-    samplecommands.write('exit $?\n')
-    samplecommands.close()
-    st = os.stat(scriptfile)
-    os.chmod(scriptfile, st.st_mode | stat.S_IEXEC)
-    
-    return(scriptfile)
 
 def createGenerateAFLociCmd(samplename, vcf_file, pipe_dir, run_dir):
     return(merge_items(["python", path.joinpath(pipe_dir, "dirichlet_preprocessing.py -c generateAFLoci"),

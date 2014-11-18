@@ -105,7 +105,10 @@ cd ../samplesheet
 python ~/repo/generateClonalityPipeline/generateSamplesheet.py -s input/samplelist.txt --bt input/bam_tumour.txt --idt input/id_tumour.txt --bn input/bam_normal.txt --idn input/id_normal.txt -x input/gender.txt -v input/variants.txt -b input/bb_dirs.txt -o output/epitax_samplesheet.txt
 
 ## Setup BB pipeline (optional)
-TODO
+python ~/repo/generateClonalityPipeline/generateBattenbergPipeline.py --ss ../samplesheet/output/epitax_samplesheet.txt -r $PWD -t 5
+
+TODO: work with output of this BB (perhaps generate a list of bb_dirs per sample, or second samplesheet as can already be read in by preprocessing pipeline creation script)
+
 
 ## Create preprocessing pipeline
 cd ../

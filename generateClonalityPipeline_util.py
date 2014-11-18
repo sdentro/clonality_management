@@ -1,15 +1,19 @@
-import sys
+import os, stat
 import numpy as np
+from path import path
+from util import merge_items
 
 class SampleSheet(object):
     
-    def __init__(self, sample2normals, sample2tumours, sample2sex, sample2normal_bam, sample2tumour_bam, sample2bb_dir, sample2variants):
+    def __init__(self, sample2normals, sample2tumours, sample2sex, sample2normal_bam, sample2tumour_bam, sample2bb_dir, sample2variants, tumour_normal_pairs_id, tumour_normal_pairs_bam, tumour_bam2tumour_id):
         assert len(sample2sex.keys()) == len(sample2normals.keys()) and len(sample2sex.keys()) == len(sample2tumours.keys()) and \
             len(sample2sex.keys()) == len(sample2normal_bam.keys()) and len(sample2sex.keys()) == len(sample2tumour_bam.keys()) and \
-            len(sample2sex.keys()) == len(sample2bb_dir.keys()) and len(sample2sex.keys()) == len(sample2variants.keys()), "SampleSheet: Received mappings do not contain all samples"
+            len(sample2sex.keys()) == len(sample2bb_dir.keys()) and len(sample2sex.keys()) == len(sample2variants.keys()) and \
+            len(sample2sex.keys()) == len(tumour_normal_pairs_bam.keys()) and len(sample2sex.keys()) == len(tumour_normal_pairs_id.keys()), "SampleSheet: Received mappings do not contain all samples"
         for samplename in sample2sex.keys():
-            assert samplename in sample2normals.keys() and samplename in sample2tumours.keys() and samplename in sample2normal_bam and \
-            samplename in sample2tumour_bam and samplename in sample2bb_dir and samplename in sample2variants, "SampleSheet: Received mappings do not contain all samples"
+            assert samplename in sample2normals.keys() and samplename in sample2tumours.keys() and samplename in sample2normal_bam.keys() and \
+            samplename in sample2tumour_bam.keys() and samplename in sample2bb_dir.keys() and samplename in sample2variants.keys() and \
+            samplename in tumour_normal_pairs_id.keys() and samplename in tumour_normal_pairs_bam.keys(), "SampleSheet: Received mappings do not contain all samples"
         
         self._sample2normals = sample2normals
         self._sample2tumours = sample2tumours
@@ -18,6 +22,9 @@ class SampleSheet(object):
         self._sample2tumour_bam = sample2tumour_bam
         self._sample2bb_dir = sample2bb_dir
         self._sample2variants = sample2variants
+        self._tumour_normal_pairs_id = tumour_normal_pairs_id
+        self._tumour_normal_pairs_bam = tumour_normal_pairs_bam
+        self._tumour_bam2tumour_id = tumour_bam2tumour_id
 
     def getSamplenames(self):
         return self._sample2tumours.keys()
@@ -51,10 +58,16 @@ class SampleSheet(object):
     
     def isMale(self, samplename):
         return (self.getSex(samplename) == 'male') or (self.getSex(samplename) == 'Male')
+    
+    def getTumour2NormalPairingBam(self, samplename):
+        return(self._tumour_normal_pairs_bam[samplename])
+    
+    def getIdByTumourBam(self, bam_file):
+        return(self._tumour_bam2tumour_id[bam_file])
 
 def read_sample_infile(infile):
     '''
-    Reads in a table: samplename\tmale\tnormalsubsample1,normalsubsample2,etc\ttumoursubsample1,tumoursubsample2,etc
+    Reads in a table: samplename\tmale\tnormalsubsample\ttumoursubsample
     
     Creates and returns a SampleSheet object.
     '''
@@ -66,6 +79,9 @@ def read_sample_infile(infile):
     bb_dir = dict()
     sex = dict()
     variants = dict()
+    tumour_normal_pairs_id = dict()
+    tumour_normal_pairs_bam = dict()
+    tumour_bam2tumour_id = dict()
     
     for line in f:
         l = line.strip()
@@ -84,6 +100,8 @@ def read_sample_infile(infile):
             bb_dir[c1] = bb_dir[c1] + c6
             sex[c1] = sex[c1] + c7
             variants[c1] = variants[c1] + c8
+            tumour_normal_pairs_id[c1] = tumour_normal_pairs_id[c1] + (c2, c4)
+            tumour_normal_pairs_bam[c1] = tumour_normal_pairs_bam[c1] + (c3, c5)
         else:
             # Case new sample
             tumour_ids[c1] = [c2]
@@ -93,12 +111,63 @@ def read_sample_infile(infile):
             bb_dir[c1] = [c6]
             sex[c1] = [c7]
             variants[c1] = [c8]
+            tumour_normal_pairs_id[c1] = [(c2, c4)]
+            tumour_normal_pairs_bam[c1] = [(c3, c5)]
+            
+        tumour_bam2tumour_id[c3] = c2
     
     f.close()
     
-    ss = SampleSheet(normal_ids, tumour_ids, sex, normal_bam, tumour_bam, bb_dir, variants)
+    ss = SampleSheet(normal_ids, tumour_ids, sex, normal_bam, tumour_bam, bb_dir, variants, tumour_normal_pairs_id, tumour_normal_pairs_bam, tumour_bam2tumour_id)
         
     return ss
+
+
+def generateBsubCmd(jobname, logdir, cmd, queue="normal", mem=1, depends=None, isArray=False, threads=None):
+    '''
+    Transforms the cmd into a bsub command with the supplied parameters.
+    '''
+    bcmd = merge_items(["bsub","-q", queue, "-J \""+jobname+"\""])
+    
+    if isArray:
+        bcmd = merge_items([bcmd, "-o", path.joinpath(logdir, jobname)+".%J.%I.out", "-e", path.joinpath(logdir, jobname+".%J.%I.err")])
+    else:
+        bcmd = merge_items([bcmd, "-o", path.joinpath(logdir, jobname)+".%J.out", "-e", path.joinpath(logdir, jobname+".%J.err")])
+
+    mem = str(mem)+"000"
+    bcmd = merge_items([bcmd, "-M", mem, "-R", "'span[hosts=1] select[mem>" + mem + "] rusage[mem=" + mem + "]'"])
+
+    if depends is not None:
+        depends_str = map(lambda x: "done("+x+")", depends)
+        depends_str = "&&".join(depends_str)    
+        bcmd = merge_items([bcmd, "-w\""+depends_str+"\""])
+        
+    if threads is not None:
+        bcmd = merge_items([bcmd, "-n", str(threads)])
+
+    bcmd = merge_items([bcmd, "'"+cmd+"'"])
+
+    return(bcmd)
+
+def writeSimpleShellScript(rundir, scriptname, cmds):
+    '''
+    Creates a simple script with the commands specified in cmds contained within.
+    This script works with jobarrays. 
+    Note: It returns the status of the last run command.
+    '''
+    #scriptfile = path.joinpath(rundir, 'GetAlleleFrequenciesFromBAMByChromosome'+samplename+'.sh')
+    scriptfile = path.joinpath(rundir, scriptname)
+    samplecommands = open(scriptfile,'w')
+    samplecommands.write('#$LSB_JOBINDEX\n')
+    for item in cmds:
+        samplecommands.write(item+"\n")
+
+    samplecommands.write('exit $?\n')
+    samplecommands.close()
+    st = os.stat(scriptfile)
+    os.chmod(scriptfile, st.st_mode | stat.S_IEXEC)
+    
+    return(scriptfile)
 
 # def read_item_list(infile):
 #     '''

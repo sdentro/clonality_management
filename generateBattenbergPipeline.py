@@ -1,168 +1,206 @@
-import sys, argparse
+import sys, argparse, os, stat
 from path import path
-from clonalityPipelineConfig import IMPUTEFILESDIR, G1000LOCIDIR
-from generateClonalityPipeline_util import read_sample_infile
-'''
-RUN_DIR=/lustre/scratch110/sanger/sd11/epitax/battenberg/PD7404a
-PIPELINE_DIR=/lustre/scratch110/sanger/sd11/epitax/battenberg/PD7404a
-TUMOURNAME=PD7404a
-NORMALNAME=PD7404b
-'''
+# from clonalityPipelineConfig import IMPUTEFILESDIR, G1000LOCIDIR
+from generateClonalityPipeline_util import read_sample_infile, generateBsubCmd, writeSimpleShellScript
+from util import merge_items
 
-# Set some default options
-IMPUTEINFOFILE='impute_info.txt' #/lustre/scratch110/sanger/sd11/epitax/battenberg/PD7404a/impute_info.txt'
-IMPUTE_EXE='impute_v2.2.2_x86_64_static/impute2' #/lustre/scratch110/sanger/sd11/epitax/battenberg/PD7404a/impute_v2.2.2_x86_64_static/impute2'
-PROBLEMLOCIFILE='probloci.txt'
-IS_MALE=False
-PLATFORM_GAMMA=1
-PHASING_GAMMA=1
-SEGMENTATION_GAMMA=10
-CLONALITY_DIST_METRIC=0
-ASCAT_DIST_METRIC=1
-MIN_PLOIDY=1.6
-MAX_PLOIDY=4.8
-MIN_RHO=0.1
-MIN_GOODNESS_OF_FIT=0.63
-BALANCED_THRESHOLD=0.51
-
-def generateBattenbergConfig(tumourname, normalname, run_dir, pipeline_dir, log_dir, is_male=IS_MALE, platform_gamma=PLATFORM_GAMMA, phasing_gamma=PHASING_GAMMA, segmentation_gamma=SEGMENTATION_GAMMA, clonality_dist_metric=CLONALITY_DIST_METRIC, ascat_dist_metric=ASCAT_DIST_METRIC, min_ploidy=MIN_PLOIDY, max_ploidy=MAX_PLOIDY, min_rho=MIN_RHO, min_goodness_of_fit=MIN_GOODNESS_OF_FIT, balanced_threshold=BALANCED_THRESHOLD, imputeinfofile=IMPUTEINFOFILE, impute_exe=IMPUTE_EXE, problemlocifile=PROBLEMLOCIFILE):
-	config_file = path.joinpath(run_dir, 'params'+tumourname+'.txt')
-	f = open(config_file, 'w')
-	f.write('RUN_DIR='+run_dir+'\n')
-	f.write('PIPELINE_DIR='+pipeline_dir+'\n')
-	f.write('LOG_DIR='+log_dir+'\n')
-	f.write('TUMOURNAME='+tumourname+'\n')
-	f.write('NORMALNAME='+normalname+'\n')
-	f.write('PROBLEMLOCI='+problemlocifile+'\n')
-	f.write('IMPUTEINFOFILE='+imputeinfofile+'\n')
-	f.write('IMPUTE_EXE='+impute_exe+'\n')
-	if is_male: # == 'male' or is_male == 'Male':
-		f.write('IS_MALE=TRUE\n')
-	else:
-		f.write('IS_MALE=FALSE\n')
-	f.write('PLATFORM_GAMMA='+str(platform_gamma)+'\n')
-	f.write('PHASING_GAMMA='+str(phasing_gamma)+'\n')
-	f.write('SEGMENTATION_GAMMA='+str(segmentation_gamma)+'\n')
-	f.write('CLONALITY_DIST_METRIC='+str(clonality_dist_metric)+'\n')
-	f.write('ASCAT_DIST_METRIC='+str(ascat_dist_metric)+'\n')
-	f.write('MIN_PLOIDY='+str(min_ploidy)+'\n')
-	f.write('MAX_PLOIDY='+str(max_ploidy)+'\n')
-	f.write('MIN_RHO='+str(min_rho)+'\n')
-	f.write('MIN_GOODNESS_OF_FIT='+str(min_goodness_of_fit)+'\n')
-	f.write('BALANCED_THRESHOLD='+str(balanced_threshold)+'\n')
-	f.close()
-	return config_file
+BBSCRIPT = "perl ~/repo/cgpBattenberg/perl/bin/battenberg.pl"
+GENOME_INDEX = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/refs_icgc_pancan/genome.fa.fai"
+IMPUTE_INFO = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_impute/impute_info.txt"
+G1000_LOCI_DIR = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_1000genomesloci2012/"
+PROB_LOCI_FILE = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_probloci/probloci.txt"
+IGNORE_FILE = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_ignore/ignore.txt"
+PROTOCOL = "WGS"
 
 
-def generateBattenbergPipeline(tumourname, normalname, run_dir, pipeline_dir, log_dir, rewrite_params=False, is_male=IS_MALE, platform_gamma=PLATFORM_GAMMA, phasing_gamma=PHASING_GAMMA, segmentation_gamma=SEGMENTATION_GAMMA, clonality_dist_metric=CLONALITY_DIST_METRIC, ascat_dist_metric=ASCAT_DIST_METRIC, min_ploidy=MIN_PLOIDY, max_ploidy=MAX_PLOIDY, min_rho=MIN_RHO, min_goodness_of_fit=MIN_GOODNESS_OF_FIT, balanced_threshold=BALANCED_THRESHOLD, imputeinfofile=IMPUTEINFOFILE, impute_exe=IMPUTE_EXE, problemlocifile=PROBLEMLOCIFILE):
-	# Create sample dir
-	run_dir_sample = path.joinpath(run_dir,normalname+"_vs_"+tumourname)
+class bb_pipeline_config(object):
 	
-	if log_dir is None:
-		log_dir = path.joinpath(run_dir_sample, 'logs')
-	
-	if not rewrite_params: # we're setting up a new pipeline, thus create dirs, symlinks and the lot
-		run_dir_sample.makedirs()
-		# Make a symlink to the impute and 1000 genomes files that are needed
-		path.joinpath(IMPUTEFILESDIR).symlink(path.joinpath(run_dir_sample, 'impute'))
-		path.joinpath(G1000LOCIDIR).symlink(path.joinpath(run_dir_sample, '1000genomesloci'))
+	def __init__(self, tumour_bam, normal_bam, run_dir, genome_index=None, impute_info=None, g1000_loci_dir=None, prob_loci_file=None, ignore_file=None, protocol=None, threads=None):
+		self._tumour_bam = tumour_bam
+		self._normal_bam = normal_bam
+		self._run_dir = run_dir
+		self._genome_index = GENOME_INDEX if genome_index is None else genome_index
+		self._impute_info = IMPUTE_INFO if impute_info is None else impute_info
+		self._g1000_loci_dir = G1000_LOCI_DIR if g1000_loci_dir is None else g1000_loci_dir
+		self._prob_loci = PROB_LOCI_FILE if prob_loci_file is None else prob_loci_file
+		self._ignore_file = IGNORE_FILE if ignore_file is None else ignore_file
+		self._protocol = PROTOCOL if protocol is None else protocol
+		self._threads = threads if threads is not None else None 
 		
-		# Create logs directory
-		if log_dir is None:
-			log_dir.makedirs()
-
-	# write the params file
-	config_file = generateBattenbergConfig(tumourname, normalname, run_dir_sample, pipeline_dir, log_dir, is_male, platform_gamma, phasing_gamma, segmentation_gamma, clonality_dist_metric, ascat_dist_metric, min_ploidy, max_ploidy, min_rho, min_goodness_of_fit, balanced_threshold, imputeinfofile, impute_exe, problemlocifile)
+	def getStandardOptions(self):
+		options = ["-o", self._run_dir,
+				"-r", self._genome_index,
+				"-e", self._impute_info,
+				"-u", self._g1000_loci_dir,
+				"-c", self._prob_loci,
+				"-ig", self._ignore_file,
+				"-pr", self._protocol,
+				"-nb", self._normal_bam,
+				"-tb", self._tumour_bam]
+		return(merge_items(options))
 	
-	if not rewrite_params: # We're creating new BB pipelines, thus we need to write the RunCommands scripts
-		# write the RunCommands.sh with the only required parameter
-		f = open(path.joinpath(run_dir_sample,'RunCommands.sh'),'w')
-		f.write(path.joinpath(pipeline_dir, 'RunCommands.sh')+' '+config_file+'\n')
-		f.close()
-		
-		# Create a script to rerun from fitcopynumber onwards, after a change in parameters
-		f = open(path.joinpath(run_dir_sample,'RunCommandsRerunFitCopynumber.sh'),'w')
-		f.write(path.joinpath(pipeline_dir, 'RunCommandsRerunFitCopynumber.sh')+' '+config_file+'\n')
-		f.close()
+	def getThreadsOption(self):
+		if self._threads is None:
+			return("")
+		else:
+			return(merge_items(["-t", str(self._threads)]))
+
+def createAlleleCountCmd(bb_conf):
+	cmd = [BBSCRIPT, bb_conf.getStandardOptions(), bb_conf.getThreadsOption(),
+		"-p", "allelecount"]
+	return(merge_items(cmd))
+
+def createBafLogCmd(bb_conf):
+	cmd = [BBSCRIPT, bb_conf.getStandardOptions(), bb_conf.getThreadsOption(),
+		"-p", "baflog"]
+	return(merge_items(cmd))
+
+def createImputeFromBafCmd(bb_conf):
+	cmd = [BBSCRIPT, bb_conf.getStandardOptions(), bb_conf.getThreadsOption(),
+		"-p", "imputefromaf"]
+	return(merge_items(cmd))	
+
+def createImputeCmd(bb_conf):
+	cmd = [BBSCRIPT, bb_conf.getStandardOptions(), bb_conf.getThreadsOption(),
+		"-p", "impute"]
+	return(merge_items(cmd))	
+
+def createCombineImputeCmd(bb_conf):
+	cmd = [BBSCRIPT, bb_conf.getStandardOptions(), bb_conf.getThreadsOption(),
+		"-p", "combineimpute"]
+	return(merge_items(cmd))	
+
+def createHaplotypeBafsCmd(bb_conf):
+	cmd = [BBSCRIPT, bb_conf.getStandardOptions(), bb_conf.getThreadsOption(),
+		"-p", "haplotypebafs"]
+	return(merge_items(cmd))	
+
+def createCleanupPostBafCmd(bb_conf):
+	cmd = [BBSCRIPT, bb_conf.getStandardOptions(), bb_conf.getThreadsOption(),
+		"-p", "cleanuppostbaf"]
+	return(merge_items(cmd))
+
+def createPlotHaplotypesCmd(bb_conf):
+	cmd = [BBSCRIPT, bb_conf.getStandardOptions(), bb_conf.getThreadsOption(),
+		"-p", "plothaplotypes"]
+	return(merge_items(cmd))
+
+def createCombineBafsCmd(bb_conf):
+	cmd = [BBSCRIPT, bb_conf.getStandardOptions(),
+		"-p", "combinebafs"]
+	return(merge_items(cmd))
+
+def createSegmentPhasedCmd(bb_conf):
+	cmd = [BBSCRIPT, bb_conf.getStandardOptions(),
+		"-p", "segmentphased"]
+	return(merge_items(cmd))
+
+def createFitcnCmd(bb_conf):
+	cmd = [BBSCRIPT, bb_conf.getStandardOptions(),
+		"-p", "fitcn"]
+	return(merge_items(cmd))
+
+def createSubclonesCmd(bb_conf):
+	cmd = [BBSCRIPT, bb_conf.getStandardOptions(),
+		"-p", "subclones"]
+	return(merge_items(cmd))
+
+def createFinaliseCmd(bb_conf):
+	cmd = [BBSCRIPT, bb_conf.getStandardOptions(),
+		"-p", "finalise"]
+	return(merge_items(cmd))
+
+def generateBattenbergPipeline(run_dir, log_dir, samplename, tumour_bam, normal_bam, threads):
+	bb_conf = bb_pipeline_config(tumour_bam, normal_bam, run_dir, threads=threads)
 	
-def generateBattenbergPipelines(infile, run_dir, pipeline_dir, log_dir, rewrite_params=False, platform_gamma=PLATFORM_GAMMA, phasing_gamma=PHASING_GAMMA, segmentation_gamma=SEGMENTATION_GAMMA, clonality_dist_metric=CLONALITY_DIST_METRIC, ascat_dist_metric=ASCAT_DIST_METRIC, min_ploidy=MIN_PLOIDY, max_ploidy=MAX_PLOIDY, min_rho=MIN_RHO, min_goodness_of_fit=MIN_GOODNESS_OF_FIT, balanced_threshold=BALANCED_THRESHOLD, imputeinfofile=IMPUTEINFOFILE, impute_exe=IMPUTE_EXE, problemlocifile=PROBLEMLOCIFILE):
-	ss = read_sample_infile(infile)
+	runscript = path.joinpath(run_dir, "RunCommands_"+samplename+".sh")
+	outf = open(runscript, 'w')
+	
+	cmd = createAlleleCountCmd(bb_conf)
+	outf.write(generateBsubCmd("loci_"+samplename, log_dir, cmd, queue="normal", mem=2, depends=None, isArray=False, threads=threads) + "\n")
+	
+	cmd = createBafLogCmd(bb_conf)
+	outf.write(generateBsubCmd("baflog_"+samplename, log_dir, cmd, queue="normal", mem=28, depends=["loci_"+samplename], isArray=False, threads=threads) + "\n")
+	
+	cmd = createImputeFromBafCmd(bb_conf)
+	outf.write(generateBsubCmd("imputebaf_"+samplename, log_dir, cmd, queue="normal", mem=7, depends=["loci_"+samplename], isArray=False, threads=threads) + "\n")
 
-	# Create a directory for each normal vs tumour taking only the first normal mentioned in the samplesheet.
-	for samplename in ss.getSamplenames():
-		print(samplename)
-		for tumour in ss.getTumours(samplename):
-			print("\t"+tumour)
-			generateBattenbergPipeline(tumourname=tumour, 
-									normalname=ss.getNormals(samplename)[0], 
-									run_dir=run_dir, 
-									pipeline_dir=pipeline_dir, 
-									log_dir=log_dir,
-									rewrite_params=rewrite_params, 
-									is_male=ss.isMale(samplename), 
-									platform_gamma=platform_gamma, 
-									phasing_gamma=phasing_gamma, 
-									segmentation_gamma=segmentation_gamma, 
-									clonality_dist_metric=clonality_dist_metric, 
-									ascat_dist_metric=ascat_dist_metric, 
-									min_ploidy=min_ploidy, 
-									max_ploidy=max_ploidy, 
-									min_rho=min_rho, 
-									min_goodness_of_fit=min_goodness_of_fit, 
-									balanced_threshold=balanced_threshold, 
-									imputeinfofile=imputeinfofile, 
-									impute_exe=impute_exe, 
-									problemlocifile=problemlocifile)
+	cmd = createImputeCmd(bb_conf)
+	outf.write(generateBsubCmd("impute_"+samplename, log_dir, cmd, queue="long", mem=25, depends=["imputebaf_"+samplename], isArray=False, threads=threads) + "\n")
 
+	cmd = createCombineImputeCmd(bb_conf)
+	outf.write(generateBsubCmd("combineimpute_"+samplename, log_dir, cmd, queue="long", mem=25, depends=["impute_"+samplename], isArray=False, threads=threads) + "\n")
+
+	cmd = createHaplotypeBafsCmd(bb_conf)
+	outf.write(generateBsubCmd("haplotypebafs_"+samplename, log_dir, cmd, queue="normal", mem=12, depends=["combineimpute_"+samplename], isArray=False, threads=threads) + "\n")
+	
+	cmd = createCleanupPostBafCmd(bb_conf)
+	outf.write(generateBsubCmd("cleanuppostbaf_"+samplename, log_dir, cmd, queue="normal", mem=12, depends=["haplotypebafs_"+samplename], isArray=False, threads=threads) + "\n")
+	
+	cmd = createPlotHaplotypesCmd(bb_conf)
+	outf.write(generateBsubCmd("plothaplotypes_"+samplename, log_dir, cmd, queue="normal", mem=1, depends=["cleanuppostbaf_"+samplename], isArray=False, threads=threads) + "\n")
+
+	cmd = createCombineBafsCmd(bb_conf)
+	outf.write(generateBsubCmd("combinebafs_"+samplename, log_dir, cmd, queue="normal", mem=4, depends=["plothaplotypes_"+samplename], isArray=False, threads=None) + "\n")
+
+	cmd = createSegmentPhasedCmd(bb_conf)
+	outf.write(generateBsubCmd("segmentphased_"+samplename, log_dir, cmd, queue="normal", mem=4, depends=["combinebafs_"+samplename], isArray=False, threads=None) + "\n")
+	
+	cmd = createFitcnCmd(bb_conf)
+	outf.write(generateBsubCmd("fitcn_"+samplename, log_dir, cmd, queue="normal", mem=16, depends=["segmentphased_"+samplename, "baflog_"+samplename], isArray=False, threads=None) + "\n")
+	
+	cmd = createSubclonesCmd(bb_conf)
+	outf.write(generateBsubCmd("subclones_"+samplename, log_dir, cmd, queue="normal", mem=16, depends=["fitcn_"+samplename], isArray=False, threads=None) + "\n")
+	
+	cmd = createFinaliseCmd(bb_conf)
+	outf.write(generateBsubCmd("finalise_"+samplename, log_dir, cmd, queue="normal", mem=2, depends=["subclones_"+samplename], isArray=False, threads=None) + "\n")
+	
+	outf.close()
+	
+	# Make executable
+	st = os.stat(runscript)
+	os.chmod(runscript, st.st_mode | stat.S_IEXEC)
+	
+	return(runscript)
 
 def main(argv):
 	parser = argparse.ArgumentParser(prog='GenerateBattenbergPipeline',
 							 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-	parser.add_argument("-i", required=True, type=str, help="Full path to samplesheet. When multiple normals are defined only the first normal will be used.")
-	parser.add_argument("-r", required=True, type=str, help="Full path to directory where the pipeline is going to be run. This directory cannot exist yet.")
-	parser.add_argument("-p", required=True, type=str, help="Full path to directory where the Battenberg pipeline is stored.")
-
-	parser.add_argument("--rewrite_params", action="store_true", help="Supply this boolean when the paramaters input files should be rewritten only into existing pipelines")
-	parser.add_argument("--platform_gamma", type=float, help='The platform gamma')
-	parser.add_argument("--phasing_gamma", type=float, help='The phasing gamma')
-	parser.add_argument("--segmentation_gamma", type=float, help='The segmentation gamma')
-	parser.add_argument("--clonality_dist_metric", type=float, help='The clonality dist metric')
-	parser.add_argument("--ascat_dist_metric", type=float, help='The ASCAT dist metric')
-	parser.add_argument("--min_ploidy", type=float, help='Minimum allowed ploidy')
-	parser.add_argument("--max_ploidy", type=float, help='Maximum allowed ploidy')
-	parser.add_argument("--min_rho", type=float, help='Minimum allowed rho')
-	parser.add_argument("--min_goodness_of_fit", type=float, help='Minimum allowed goodness of fit')
-	parser.add_argument("--balanced_threshold", type=float, help='Balanced threshold')
-	parser.add_argument("--log_dir", type=str, help='Location where logfiles should be saved')
-	parser.set_defaults(rewrite_params=False, platform_gamma=PLATFORM_GAMMA, phasing_gamma=PHASING_GAMMA, segmentation_gamma=SEGMENTATION_GAMMA, clonality_dist_metric=CLONALITY_DIST_METRIC, ascat_dist_metric=ASCAT_DIST_METRIC, min_ploidy=MIN_PLOIDY, max_ploidy=MAX_PLOIDY, min_rho=MIN_RHO, min_goodness_of_fit=MIN_GOODNESS_OF_FIT, balanced_threshold=BALANCED_THRESHOLD)
-
+	parser.add_argument("--ss", type=str, required=True, help="Full path to a samplesheet")
+	parser.add_argument("-r", type=str, required=True, help="Full path to a directory where the pipelines will be ran")
+	parser.add_argument("-t", type=int, required=True, help="Number of threads to use")
 	args = parser.parse_args()
-	# Default will be used, which is battenberg_dir/samplename/logs
-	log_dir = None if args.log_dir is None else args.log_dir
 
-	generateBattenbergPipelines(infile=args.i, 
-							run_dir=args.r, 
-							pipeline_dir=args.p, 
-							log_dir=log_dir, 
-							rewrite_params=args.rewrite_params, 
-							platform_gamma=args.platform_gamma, 
-							phasing_gamma=args.phasing_gamma, 
-							segmentation_gamma=args.segmentation_gamma, 
-							clonality_dist_metric=args.clonality_dist_metric, 
-							ascat_dist_metric=args.ascat_dist_metric, 
-							min_ploidy=args.min_ploidy, 
-							max_ploidy=args.max_ploidy, 
-							min_rho=args.min_rho, 
-							min_goodness_of_fit=args.min_goodness_of_fit, 
-							balanced_threshold=args.balanced_threshold, 
-							imputeinfofile=path.joinpath(args.p, IMPUTEINFOFILE), 
-							impute_exe=path.joinpath(args.p, IMPUTE_EXE), 
-							problemlocifile=path.joinpath(args.p, PROBLEMLOCIFILE))
+	runscripts = []
+	# Read in samplesheet
+	ss = read_sample_infile(args.ss)
 	
-	print("")
-	print("Don't forget to copy the GetAlleleFrequencies output into the sample battenberg directories")
-	print("")
+	# For every entry:
+	for sample in ss.getSamplenames():
+		print(sample)
+		
+		tn_pair = ss.getTumour2NormalPairingBam(sample)
+		for tb,nb in tn_pair:
+			tumourid = ss.getIdByTumourBam(tb)
 	
+			run_dir = path.joinpath(args.r, tumourid)
+			log_dir = path.joinpath(args.r, tumourid, "logs")
+			if not run_dir.exists(): run_dir.makedirs()
+			if not log_dir.exists(): log_dir.makedirs()
+		
+			runscript = generateBattenbergPipeline(run_dir, log_dir, tumourid, tb, nb, args.t)
+			runscripts.append(runscript)
+	
+	# Create a master script
+	scriptname = path.joinpath(args.r, "RunCommands.sh")
+	runscript = open(scriptname, 'w')
+	for item in runscripts:
+		runscript.write(item+"\n")
+	runscript.close()
+	
+	# Make executable
+	st = os.stat(scriptname)
+	os.chmod(scriptname, st.st_mode | stat.S_IEXEC)
 
 if __name__ == '__main__':
 	main(sys.argv[0:])

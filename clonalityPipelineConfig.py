@@ -1,7 +1,7 @@
 
 # generateBattenbergPipeline
-IMPUTEFILESDIR='/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_impute'
-G1000LOCIDIR='/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_1000genomesloci2012'
+# IMPUTEFILESDIR='/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_impute'
+# G1000LOCIDIR='/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_1000genomesloci2012'
 
 # generateAlleleFrequencyScripts
 PERL = 'perl-5.16.3 -I /software/CGP/pancan/lib/perl5'
