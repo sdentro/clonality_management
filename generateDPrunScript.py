@@ -2,7 +2,8 @@ import argparse, sys, os, stat
 from path import path
 from util import merge_items
 
-SCRIPT = "/software/R-3.1.0/bin/Rscript /nfs/users/nfs_s/sd11/repo/dirichlet/dp_combined/RunDP_pipeline.R"
+LIBPATH = "/nfs/users/nfs_s/sd11/repo/dirichlet/dp_combined/"
+SCRIPT = merge_items(["/nfs/users/nfs_s/sd11/software/bin/Rscript", LIBPATH+"/RunDP_pipeline.R"])
 
 def _write_script(filename, lines):
     outf = open(filename, "w")
@@ -54,10 +55,10 @@ def generateDPrunScript(run_dir, dp_in_dir, dp_master_file, projectname):
     
     ''' Write block parallel run scripts '''
     # Write R wrappers first
-    lines = _get_r_wrapper_lines("trees")
-    _write_script(path.joinpath(run_dir, "RunBlockTreeDP_trees.sh"), lines)
-    lines = _get_r_wrapper_lines("cons")
-    _write_script(path.joinpath(run_dir, "RunBlockTreeDP_cons.sh"), lines)
+    #lines = _get_r_wrapper_lines("trees")
+    #_write_script(path.joinpath(run_dir, "RunBlockTreeDP_trees.sh"), lines)
+    #lines = _get_r_wrapper_lines("cons")
+    #_write_script(path.joinpath(run_dir, "RunBlockTreeDP_cons.sh"), lines)
     
     # Write wrapper around R wrappers
     '''
@@ -66,26 +67,27 @@ def generateDPrunScript(run_dir, dp_in_dir, dp_master_file, projectname):
         QUEUE="basement"
         JOBNAME="tree_pros"
         ACCEPTEDHOSTS="-m vr-2-3-10 vr-2-3-02 vr-2-3-05 vr-2-3-08 vr-2-3-15 vr-2-3-13"
-        #CMD="Rscript ~/repo/dirichlet/dp_combined/RunDP_simulated.R"
+        LIBPATH="~/repo/dirichlet/dp_combined/"
         
-        PARAMS="${SAMPLE} 200 30 /lustre/scratch110/sanger/sd11/dirichlet/prostate_mets/Data/ /lustre/scratch110/sanger/sd11/dirichlet/prostate_mets/prostate_mets.txt tree_dp true 5 0.05"
+        PARAMS="${LIBPATH} ${SAMPLE} 200 30 /lustre/scratch110/sanger/sd11/dirichlet/prostate_mets/Data/ /lustre/scratch110/sanger/sd11/dirichlet/prostate_mets/prostate_mets.txt tree_dp true 5 0.05"
         NBLOCKS=10
         
         MEMTREE=75000
         MEMCONS=75000
         
-        bsub -M ${MEMTREE} -R "select[mem>${MEMTREE}] rusage[mem=${MEMTREE}] span[hosts=1]" -n 5 -J "${JOBNAME}_t[1-${NBLOCKS}]" -q "${QUEUE}" -o $PWD/logs/${JOBNAME}_t.%J.%I.out -e $PWD/logs/${JOBNAME}_t.%J.%I.err "./RunBlockTreeDP_trees.sh ${PARAMS}"
-        bsub -w"ended(${JOBNAME}_t[1-${NBLOCKS}])" -M ${MEMCONS} -R "select[mem>${MEMCONS}] rusage[mem=${MEMCONS}]" -J "${JOBNAME}_c" -q "${QUEUE}" -o $PWD/logs/${JOBNAME}_c.%J.out -e $PWD/logs/${JOBNAME}_c.%J.err "./RunBlockTreeDP_cons.sh ${PARAMS} ${NBLOCKS}"
+        bsub -M ${MEMTREE} -R "select[mem>${MEMTREE}] rusage[mem=${MEMTREE}] span[hosts=1]" -n 5 -J "${JOBNAME}_t[1-${NBLOCKS}]" -q "${QUEUE}" -o $PWD/logs/${JOBNAME}_t.%J.%I.out -e $PWD/logs/${JOBNAME}_t.%J.%I.err "${LIBPATH}/RunBlockTreeDP_trees.sh ${PARAMS}"
+        bsub -w"ended(${JOBNAME}_t[1-${NBLOCKS}])" -M ${MEMCONS} -R "select[mem>${MEMCONS}] rusage[mem=${MEMCONS}]" -J "${JOBNAME}_c" -q "${QUEUE}" -o $PWD/logs/${JOBNAME}_c.%J.out -e $PWD/logs/${JOBNAME}_c.%J.err "${LIBPATH}/RunBlockTreeDP_cons.sh ${PARAMS} ${NBLOCKS}"
     '''
     lines = ["SAMPLE=$1", 
              "QUEUE=\"basement\"",
              merge_items(["JOBNAME=\"tree_",projectname,"\""], sep=""),
-             merge_items(["PARAMS=\"${SAMPLE} 200 30", dp_in_dir, dp_master_file, "tree_dp true 5 0.05\""]),
+             merge_items(["LIBPATH=\"", LIBPATH, "\""], sep=""),
+             merge_items(["PARAMS=\"${LIBPATH} ${SAMPLE} 200 30", dp_in_dir, dp_master_file, "tree_dp true 5 0.05\""]),
              "NBLOCKS=\"10\"",
              "MEMTREE=\"15000\"",
              "MEMCONS=\"15000\"",
-             merge_items(["bsub -M ${MEMTREE} -R \"select[mem>${MEMTREE}] rusage[mem=${MEMTREE}] span[hosts=1]\" -n 5 -J \"${JOBNAME}_t[1-${NBLOCKS}]\" -q \"${QUEUE}\" -o $PWD/logs/${JOBNAME}_t.%J.%I.out -e $PWD/logs/${JOBNAME}_t.%J.%I.err \"./RunBlockTreeDP_trees.sh ${PARAMS}\""]),
-             merge_items(["bsub -w\"ended(${JOBNAME}_t[1-${NBLOCKS}])\" -M ${MEMCONS} -R \"select[mem>${MEMCONS}] rusage[mem=${MEMCONS}]\" -J \"${JOBNAME}_c\" -q \"${QUEUE}\" -o $PWD/logs/${JOBNAME}_c.%J.out -e $PWD/logs/${JOBNAME}_c.%J.err \"./RunBlockTreeDP_cons.sh ${PARAMS} ${NBLOCKS}\""])]
+             merge_items(["bsub -M ${MEMTREE} -R \"select[mem>${MEMTREE}] rusage[mem=${MEMTREE}] span[hosts=1]\" -n 5 -J \"${JOBNAME}_t[1-${NBLOCKS}]\" -q \"${QUEUE}\" -o $PWD/logs/${JOBNAME}_t.%J.%I.out -e $PWD/logs/${JOBNAME}_t.%J.%I.err \"${LIBPATH}/RunBlockTreeDP_trees.sh ${PARAMS}\""]),
+             merge_items(["bsub -w\"ended(${JOBNAME}_t[1-${NBLOCKS}])\" -M ${MEMCONS} -R \"select[mem>${MEMCONS}] rusage[mem=${MEMCONS}]\" -J \"${JOBNAME}_c\" -q \"${QUEUE}\" -o $PWD/logs/${JOBNAME}_c.%J.out -e $PWD/logs/${JOBNAME}_c.%J.err \"${LIBPATH}/RunBlockTreeDP_cons.sh ${PARAMS} ${NBLOCKS}\""])]
     _write_script(path.joinpath(run_dir, "submit.block.sh"), lines)
 
 
@@ -98,22 +100,23 @@ def generateDPrunScript(run_dir, dp_in_dir, dp_master_file, projectname):
         QUEUE="long"
         JOBNAME="tree_pros"
         ACCEPTEDHOSTS="-m vr-2-3-10 vr-2-3-02 vr-2-3-05 vr-2-3-08 vr-2-3-15 vr-2-3-13"
-        #CMD="Rscript ~/repo/dirichlet/dp_combined/RunDP_simulated.R"
+        LIBPATH="~/repo/dirichlet/dp_combined/"
         
-        PARAMS="${SAMPLE} 200 30 /lustre/scratch110/sanger/sd11/dirichlet/prostate_mets/Data/ /lustre/scratch110/sanger/sd11/dirichlet/prostate_mets/prostate_mets.txt tree_dp true 5 0.05"
+        PARAMS="${LIBPATH} ${SAMPLE} 200 30 /lustre/scratch110/sanger/sd11/dirichlet/prostate_mets/Data/ /lustre/scratch110/sanger/sd11/dirichlet/prostate_mets/prostate_mets.txt tree_dp true 5 0.05"
         NBLOCKS=10
         
         MEMCONS=75000
         
-        bsub -M ${MEMCONS} -R "select[mem>${MEMCONS}] rusage[mem=${MEMCONS}]" -J "${JOBNAME}_c" -q "${QUEUE}" -o $PWD/logs/${JOBNAME}_c.%J.out -e $PWD/logs/${JOBNAME}_c.%J.err "./RunBlockTreeDP_cons.sh ${PARAMS} ${NBLOCKS}"
+        bsub -M ${MEMCONS} -R "select[mem>${MEMCONS}] rusage[mem=${MEMCONS}]" -J "${JOBNAME}_c" -q "${QUEUE}" -o $PWD/logs/${JOBNAME}_c.%J.out -e $PWD/logs/${JOBNAME}_c.%J.err "${LIBPATH}/RunBlockTreeDP_cons.sh ${PARAMS} ${NBLOCKS}"
     '''
     lines = ["SAMPLE=$1", 
              "QUEUE=\"basement\"",
              merge_items(["JOBNAME=\"tree_",projectname,"\""], sep=""),
-             merge_items(["PARAMS=\"${SAMPLE} 200 30", dp_in_dir, dp_master_file, "tree_dp true 5 0.05\""]),
+             merge_items(["LIBPATH=\"", LIBPATH, "\""], sep=""),
+             merge_items(["PARAMS=\"${LIBPATH} ${SAMPLE} 200 30", dp_in_dir, dp_master_file, "tree_dp true 5 0.05\""]),
              "NBLOCKS=\"10\"",
              "MEMCONS=\"15000\"",
-             merge_items(["bsub -w\"ended(${JOBNAME}_t[1-${NBLOCKS}])\" -M ${MEMCONS} -R \"select[mem>${MEMCONS}] rusage[mem=${MEMCONS}]\" -J \"${JOBNAME}_c\" -q \"${QUEUE}\" -o $PWD/logs/${JOBNAME}_c.%J.out -e $PWD/logs/${JOBNAME}_c.%J.err \"./RunBlockTreeDP_cons.sh ${PARAMS} ${NBLOCKS}\""])]
+             merge_items(["bsub -w\"ended(${JOBNAME}_t[1-${NBLOCKS}])\" -M ${MEMCONS} -R \"select[mem>${MEMCONS}] rusage[mem=${MEMCONS}]\" -J \"${JOBNAME}_c\" -q \"${QUEUE}\" -o $PWD/logs/${JOBNAME}_c.%J.out -e $PWD/logs/${JOBNAME}_c.%J.err \"${LIBPATH}/RunBlockTreeDP_cons.sh ${PARAMS} ${NBLOCKS}\""])]
     _write_script(path.joinpath(run_dir, "resubmit.block.sh"), lines)
     
     
