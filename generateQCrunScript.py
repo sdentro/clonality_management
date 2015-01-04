@@ -22,6 +22,8 @@ def generateQcrunScript(dp_master_file, dp_in_dir, qc_dir):
     outf.write("convert *_fractionOfCells*png fractionOfCells.pdf\n")
     outf.write("convert *subclonalFractionPerChromosome*png subclonalFractionPerChromosome.pdf\n")
     outf.write("convert *large.subclonal.fraction.by.chrom*png large.subclonal.fraction.by.chrom.pdf\n")
+    outf.write("convert *depth.vs.frac.mutCount.png depth.vs.frac.mutCount.pdf\n")
+    outf.write("convert *_cellularityCorrectedAF.png cellularityCorrectedAF.pdf\n")
     outf.close()
     # Make executable
     st = os.stat(scriptfile)

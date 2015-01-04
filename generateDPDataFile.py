@@ -39,9 +39,29 @@ def getTumourPurity(ss, bb_dir, run_dir):
         normal = ss.getNormals(sample)[0]
         
         for tumour in ss.getTumours(sample): # bb is run as first normal against all tumours
-            sample_dir = normal+"_vs_"+tumour
+            #sample_dir = normal+"_vs_"+tumour
+            sample_dir = tumour
         
-        # This should be fixed properly
+            # This should be fixed properly
+        
+        
+            # There are two cases: 1) bb_dir contains subdirs for each sample 2) all bb output is residing in bb_dir directly
+            if len(bb_dirs[np.array([sample_dir in item for item in bb_dirs])]) == 1:
+                # Case 1
+                indir = path.joinpath(bb_dir, tumour)
+            elif len(bb_dirs[np.array([sample_dir in item for item in bb_dirs])]) > 1:
+                print("Found more than one bb output dir for sample "+tumour)
+                sys.exit(1)
+            else:
+                # Case 2
+                indir = bb_dir
+#                 listing = np.array(path(bb_dir).listdir(RHO_AND_PSI_REGEX))
+#                 if sum([tumour in filename for filename in listing]) == 1:
+#                     rho_and_psi = listing[np.array([tumour in filename for filename in listing])] # Should yield only a single file
+#                 else:
+#                     print("Could not find rho_and_psi output for sample "+tumour)
+#                     sys.exit(1)
+                    
         
         
 #             if len(bb_dirs[np.array([sample_dir in item for item in bb_dirs])]) > 1:
@@ -50,11 +70,11 @@ def getTumourPurity(ss, bb_dir, run_dir):
 #                 
 #             indir = bb_dirs[np.array([sample_dir in item for item in bb_dirs])][0] # Should yield only a single dir
             
-            indir = bb_dir
+#             indir = bb_dir
 #             rho_and_psi = path(indir).listdir(RHO_AND_PSI_REGEX)[0] # Should yield only a single file
             listing = np.array(path(indir).listdir(RHO_AND_PSI_REGEX))
             rho_and_psi = listing[np.array([tumour in filename for filename in listing])] # Should yield only a single file
-            
+
             if not len(rho_and_psi) == 1:
                 print("Found different than expected number of matches for "+tumour)
                 continue

@@ -117,7 +117,7 @@ def generateBattenbergPipeline(run_dir, log_dir, samplename, tumour_bam, normal_
 	outf = open(runscript, 'w')
 	
 	cmd = createAlleleCountCmd(bb_conf)
-	outf.write(generateBsubCmd("loci_"+samplename, log_dir, cmd, queue="normal", mem=2, depends=None, isArray=False, threads=threads) + "\n")
+	outf.write(generateBsubCmd("loci_"+samplename, log_dir, cmd, queue="normal", mem=4, depends=None, isArray=False, threads=threads) + "\n")
 	
 	cmd = createBafLogCmd(bb_conf)
 	outf.write(generateBsubCmd("baflog_"+samplename, log_dir, cmd, queue="normal", mem=28, depends=["loci_"+samplename], isArray=False, threads=threads) + "\n")

@@ -1,7 +1,7 @@
 import os, stat, sys, argparse
 from path import path
 from util import merge_items
-from generateClonalityPipeline_util import read_sample_infile, generateBsubCmd, writeSimpleShellScript
+from generateClonalityPipeline_util import generateBsubCmd, writeSimpleShellScript
 
 samplename = "PD7404a"
 bam_file = "/lustre/scratch110/sanger/sd11/epitax/bam/PD7404a.bam"
@@ -9,37 +9,40 @@ bai_file = "/lustre/scratch110/sanger/sd11/epitax/bam/PD7404a.bam.bai"
 vcf_file = "/lustre/scratch110/sanger/sd11/epitax/variants/filtered_vcf/PD7404a.filt.vcf.gz"
 run_dir = "/nfs/users/nfs_s/sd11/repo/dirichlet_preprocessing/test/PD7404a/"
 
-PIPE_DIR = "/nfs/users/nfs_s/sd11/repo/dirichlet_preprocessing"
+PIPE_DIR = "/nfs/users/nfs_s/sd11/repo/dirichlet_preprocessing_adapt_interface_to_fai"
 
-CHROMS_FILE = "/nfs/users/nfs_s/sd11/repo/dirichlet_preprocessing/chroms_human.txt"
-# Parse the CHROMS file into the values we need to create jobs
-chroms = []
-sex_chroms = []
-for line in open(CHROMS_FILE, 'r'):
-    words = line.strip().split("\t")
-    if int(words[2]) == 0:
-        chroms.append(words[0])
-    else:
-        sex_chroms.append(words[0])
+# CHROMS_FILE = "/nfs/users/nfs_s/sd11/repo/dirichlet_preprocessing/chroms_human.txt"
+# # Parse the CHROMS file into the values we need to create jobs
+# chroms = []
+# sex_chroms = []
+# for line in open(CHROMS_FILE, 'r'):
+#     words = line.strip().split("\t")
+#     if int(words[2]) == 0:
+#         chroms.append(words[0])
+#     else:
+#         sex_chroms.append(words[0])
+# 
+# no_aut_chroms = len(chroms)
+# no_chroms = len(chroms) + len(sex_chroms)
 
-no_aut_chroms = len(chroms)
-no_chroms = len(chroms) + len(sex_chroms)
-
-def createGenerateAFLociCmd(samplename, vcf_file, pipe_dir, run_dir):
+def createGenerateAFLociCmd(samplename, vcf_file, fai_file, ignore_file, pipe_dir, run_dir):
     return(merge_items(["python", path.joinpath(pipe_dir, "dirichlet_preprocessing.py -c generateAFLoci"),
                         "-s", samplename,
                         "-o", samplename+".loci",
                         "-v", vcf_file,
+                        "-f", fai_file,
+                        "-i", ignore_file,
                         "-r", run_dir,
                         "-p", pipe_dir]))
     
-def createSplitLociCmd(samplename, loci_file, prefix, postfix, chroms_file, pipe_dir, run_dir):
+def createSplitLociCmd(samplename, loci_file, fai_file, ignore_file, prefix, postfix, pipe_dir, run_dir):
     return(merge_items(["python", path.joinpath(pipe_dir, "dirichlet_preprocessing.py -c splitLociFile"),
                         "-s", samplename,
                         "--loci", loci_file,
+                        "-f", fai_file,
+                        "-i", ignore_file,
                         "--prefix", prefix,
                         "--postfix", postfix,
-                        "--chroms", chroms_file,
                         "-r", run_dir,
                         "-p", pipe_dir]))
     
@@ -105,13 +108,15 @@ def createDpInputCmd(samplename, loci_file, allele_freq_file, subclone_file, rho
                         "-r", run_dir,
                         "-p", pipe_dir]))
     
-def createDpIn2VcfCmd(vcf_file, dpIn_file, outfile, pipe_dir):
+def createDpIn2VcfCmd(vcf_file, dpIn_file, outfile, fai_file, ignore_file, pipe_dir):
     return(merge_items(["python", path.joinpath(pipe_dir, "dpIn2vcf.py"),
                         "-v", vcf_file,
                         "-i", dpIn_file,
+                        "-f", fai_file,
+                        "--ig", ignore_file,
                         "-o", outfile]))
     
-def dp_preprocessing_pipeline(samplename, vcf_file, bam_file, bai_file, baf_file, hap_info_prefix, hap_info_suffix, subclone_file, rho_psi_file, chroms_file, max_distance, gender, bb_dir, log_dir, pipe_dir, run_dir):
+def dp_preprocessing_pipeline(samplename, vcf_file, fai_file, ignore_file, bam_file, bai_file, baf_file, hap_info_prefix, hap_info_suffix, subclone_file, rho_psi_file, no_chroms, no_chroms_mut_cn_phasing, max_distance, gender, bb_dir, log_dir, pipe_dir, run_dir):
     '''
     Creates a list of commands that together form the preprocessing pipeline. It consists of 3 separate threads (a,b,c)
     that come together in the last step. 
@@ -129,11 +134,11 @@ def dp_preprocessing_pipeline(samplename, vcf_file, bam_file, bai_file, baf_file
     outf = open(runscript, 'w')
     
     # Generate the loci file from vcf
-    cmd = createGenerateAFLociCmd(samplename, vcf_file, pipe_dir, run_dir)
+    cmd = createGenerateAFLociCmd(samplename, vcf_file, fai_file, ignore_file, pipe_dir, run_dir)
     outf.write(generateBsubCmd("loci_"+samplename, log_dir, cmd, queue="normal", mem=1, depends=None, isArray=False) + "\n")
     
     # Split the loci file per chromosome
-    cmd = createSplitLociCmd(samplename, samplename+".loci", samplename+"_loci_chr", ".txt", chroms_file, pipe_dir, run_dir)
+    cmd = createSplitLociCmd(samplename, samplename+".loci", fai_file, ignore_file, samplename+"_loci_chr", ".txt", pipe_dir, run_dir)
     outf.write(generateBsubCmd("splitLoci_"+samplename, log_dir, cmd, queue="normal", mem=1, depends=["loci_"+samplename], isArray=False) + "\n")
     
     # Get the allele frequencies in parallel per chromosome
@@ -166,10 +171,10 @@ def dp_preprocessing_pipeline(samplename, vcf_file, bam_file, bai_file, baf_file
     writeSimpleShellScript(run_dir, "RunMutCnPhasing_"+samplename+".sh", [cmd])
     cmd = path.joinpath(run_dir, "RunMutCnPhasing_"+samplename+".sh")
     # Note: We run this bit only for the autosomal chromosomes. The Y chrom can never be phased, while X is not as simple to do.
-    outf.write(generateBsubCmd("mcp_"+samplename+_arrayJobNameExt(no_aut_chroms), log_dir, cmd, queue="normal", mem=2, depends=["splitLoci_"+samplename], isArray=True) + "\n")
+    outf.write(generateBsubCmd("mcp_"+samplename+_arrayJobNameExt(no_chroms_mut_cn_phasing), log_dir, cmd, queue="normal", mem=2, depends=["splitLoci_"+samplename], isArray=True) + "\n")
     
     # Note: We run this bit only for the autosomal chromosomes. The Y chrom can never be phased, while X is not as simple to do.
-    infile_list = [item[0]+str(item[1])+item[2] for item in zip([samplename+"_phased_mutcn_chr"]*no_chroms, range(1,no_aut_chroms+1), [".txt"]*no_chroms)]
+    infile_list = [item[0]+str(item[1])+item[2] for item in zip([samplename+"_phased_mutcn_chr"]*no_chroms, range(1,no_chroms_mut_cn_phasing+1), [".txt"]*no_chroms)]
     cmd = createConcatSplitFilesCmd(samplename, infile_list, samplename+"_phasedmutCN.txt", True, run_dir, pipe_dir)
     outf.write(generateBsubCmd("concMCP_"+samplename, log_dir, cmd, queue="normal", mem=1, depends=["mcp_"+samplename], isArray=False) + "\n")   
     
@@ -182,7 +187,7 @@ def dp_preprocessing_pipeline(samplename, vcf_file, bam_file, bai_file, baf_file
     '''
     ########################################################### DP input to VCF ###########################################################
     '''
-    cmd = createDpIn2VcfCmd(vcf_file, path.joinpath(run_dir,samplename+"_allDirichletProcessInfo.txt"), path.joinpath(run_dir, samplename+".dpIn.vcf"), pipe_dir)
+    cmd = createDpIn2VcfCmd(vcf_file, path.joinpath(run_dir,samplename+"_allDirichletProcessInfo.txt"), path.joinpath(run_dir, samplename+".dpIn.vcf"), fai_file, ignore_file, pipe_dir)
     outf.write(generateBsubCmd("dpIn2Vcf_"+samplename, log_dir, cmd, queue="normal", mem=2, depends=["dpIn_"+samplename], isArray=False) + "\n")
     
     outf.close()
@@ -209,6 +214,9 @@ def main(argv):
                              formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("-s", required=True, type=str, help="Sample sheet that contains a line per sample")
     parser.add_argument("-r", required=True, type=str, help="Directory where the pipeline will be run")
+    parser.add_argument("-f", required=True, type=str, help="Full path to a Fasta index file")
+    parser.add_argument("-i", required=True, type=str, help="Full path to file with chromosome names to ignore")
+    parser.add_argument("--ip", required=True, type=str, help="Full path to file with chromsome names to ignore ONLY when phasing")
     
     # Parameters
     parser.add_argument("--min_baq", type=int, help="Minimum BAQ for a base to be included")
@@ -218,6 +226,15 @@ def main(argv):
     parser.set_defaults(min_baq=10, min_maq=10, max_distance=700, debug=False)
     
     args = parser.parse_args()
+    
+    # Determine number of chromosomes
+    no_chroms = 0
+    no_ignored_chroms = 0
+    no_ignore_phasing = 0
+    
+    for _ in open(args.f, 'r'): no_chroms = no_chroms+1
+    for _ in open(args.i, 'r'): no_ignored_chroms = no_ignored_chroms+1
+    for _ in open(args.ip, 'r'): no_ignore_phasing = no_ignore_phasing+1
     
     # read in a samplesheet
     samples = _readSampleSheet(args.s)
@@ -246,6 +263,8 @@ def main(argv):
         
         runscript = dp_preprocessing_pipeline(samplename=samplename, 
                                   vcf_file=vcf_file, 
+                                  fai_file=args.f,
+                                  ignore_file=args.i,
                                   bam_file=bam_file, 
                                   bai_file=bai_file, 
                                   baf_file=baf_file, 
@@ -253,7 +272,8 @@ def main(argv):
                                   hap_info_suffix=hap_info_suffix,
                                   subclone_file=subclone_file, 
                                   rho_psi_file=rho_psi_file, 
-                                  chroms_file=CHROMS_FILE, 
+                                  no_chroms=no_chroms-no_ignored_chroms,
+                                  no_chroms_mut_cn_phasing=no_chroms-no_ignored_chroms-no_ignore_phasing,
                                   max_distance=args.max_distance, 
                                   gender=gender, 
                                   bb_dir=bb_dir, 
