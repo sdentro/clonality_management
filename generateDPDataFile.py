@@ -32,8 +32,8 @@ def getTumourPurity(ss, bb_dir, run_dir):
     Create an inventory of tumour and purity and return it as dict
     '''
     sample2purity = dict()
-    # TODO: Perhaps here determine whether rho_and_psi files are in subdirs?
-    bb_dirs = np.array(path.joinpath(bb_dir).listdir())
+    bb_dirs = np.array(path.joinpath(bb_dir).dirs())
+    
     for sample in ss.getSamplenames():
         
         normal = ss.getNormals(sample)[0]
@@ -46,10 +46,10 @@ def getTumourPurity(ss, bb_dir, run_dir):
         
         
             # There are two cases: 1) bb_dir contains subdirs for each sample 2) all bb output is residing in bb_dir directly
-            if len(bb_dirs[np.array([sample_dir in item for item in bb_dirs])]) == 1:
+            if len(bb_dirs) > 0 and len(bb_dirs[np.array([sample_dir in item for item in bb_dirs])]) == 1:
                 # Case 1
                 indir = path.joinpath(bb_dir, tumour)
-            elif len(bb_dirs[np.array([sample_dir in item for item in bb_dirs])]) > 1:
+            elif len(bb_dirs) > 0 and len(bb_dirs[np.array([sample_dir in item for item in bb_dirs])]) > 1:
                 print("Found more than one bb output dir for sample "+tumour)
                 sys.exit(1)
             else:
