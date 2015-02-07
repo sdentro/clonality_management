@@ -9,64 +9,61 @@ bai_file = "/lustre/scratch110/sanger/sd11/epitax/bam/PD7404a.bam.bai"
 vcf_file = "/lustre/scratch110/sanger/sd11/epitax/variants/filtered_vcf/PD7404a.filt.vcf.gz"
 run_dir = "/nfs/users/nfs_s/sd11/repo/dirichlet_preprocessing/test/PD7404a/"
 
-PIPE_DIR = "/nfs/users/nfs_s/sd11/repo/dirichlet_preprocessing"
+PIPE_DIR = "/nfs/users/nfs_s/sd11/repo/dirichlet_preprocessing_r_package"
+DPPVCF_SCRIPT = "python /nfs/users/nfs_s/sd11/repo/dirichlet_preprocessing_r_package/dpIn2vcf.py"
+DPP_SCRIPT = "python /nfs/users/nfs_s/sd11/repo/dirichlet_preprocessing_r_package/dirichlet_preprocessing.py"
 
-CHROMS_FILE = "/nfs/users/nfs_s/sd11/repo/dirichlet_preprocessing/chroms_human.txt"
-# Parse the CHROMS file into the values we need to create jobs
-chroms = []
-sex_chroms = []
-for line in open(CHROMS_FILE, 'r'):
-    words = line.strip().split("\t")
-    if int(words[2]) == 0:
-        chroms.append(words[0])
-    else:
-        sex_chroms.append(words[0])
+CHROMS_FAI = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/refs_icgc_pancan/genome.fa.fai"
+IGNORE_FILE = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_ignore/ignore.txt"
 
-no_aut_chroms = len(chroms)
-no_chroms = len(chroms) + len(sex_chroms)
+d = [line.strip().split("\t")[0] for line in open(CHROMS_FAI, "r")]
+i = [line.strip() for line in open(IGNORE_FILE, "r")]
+r = [item for item in d if not item in i]
+no_chroms = len(r)
+# TODO: Hardcoded for human, should change
+no_aut_chroms = no_chroms - sum([item == "X" or item == "Y" for item in r])
 
-def createGenerateAFLociCmd(samplename, vcf_file, pipe_dir, run_dir):
-    return(merge_items(["python", path.joinpath(pipe_dir, "dirichlet_preprocessing.py -c generateAFLoci"),
+def createGenerateAFLociCmd(samplename, vcf_file, run_dir):
+    return(merge_items([DPP_SCRIPT, "-c generateAFLoci",
                         "-s", samplename,
                         "-o", samplename+".loci",
                         "-v", vcf_file,
-                        "-r", run_dir,
-                        "-p", pipe_dir]))
+			"-f", CHROMS_FAI,
+			"-i", IGNORE_FILE,
+                        "-r", run_dir]))
     
-def createSplitLociCmd(samplename, loci_file, prefix, postfix, chroms_file, pipe_dir, run_dir):
-    return(merge_items(["python", path.joinpath(pipe_dir, "dirichlet_preprocessing.py -c splitLociFile"),
+def createSplitLociCmd(samplename, loci_file, prefix, postfix, run_dir):
+    return(merge_items([DPP_SCRIPT, "-c splitLociFile",
                         "-s", samplename,
                         "--loci", loci_file,
                         "--prefix", prefix,
                         "--postfix", postfix,
-                        "--chroms", chroms_file,
-                        "-r", run_dir,
-                        "-p", pipe_dir]))
+			"-f", CHROMS_FAI,
+			"-i", IGNORE_FILE,
+                        "-r", run_dir]))
     
-def createGetAlleleFrequencyCmd(samplename, loci_file_prefix, bam_file, out_file_prefix, pipe_dir, run_dir):
-    return(merge_items(["python", path.joinpath(pipe_dir, "dirichlet_preprocessing.py -c getAlleleFrequency"),
+def createGetAlleleFrequencyCmd(samplename, loci_file_prefix, bam_file, out_file_prefix, run_dir):
+    return(merge_items([DPP_SCRIPT, "-c getAlleleFrequency",
                         "-s", samplename,
                         "--bam", bam_file,
                         "--loci", loci_file_prefix+"${LSB_JOBINDEX}.txt",
                         "-o", out_file_prefix+"${LSB_JOBINDEX}.txt",
-                        "-r", run_dir,
-                        "-p", pipe_dir]))
+                        "-r", run_dir]))
     
-def createConcatSplitFilesCmd(samplename, infile_list, outfile, haveHeader, run_dir, pipe_dir):
-    cmd = ["python", path.joinpath(pipe_dir, "dirichlet_preprocessing.py -c concatSplitFiles"),
+def createConcatSplitFilesCmd(samplename, infile_list, outfile, haveHeader, run_dir):
+    cmd = [DPP_SCRIPT, "-c concatSplitFiles",
             "-s", samplename,
             "--files", merge_items(infile_list, sep=","),
             "-o", outfile,
-            "-r", run_dir,
-            "-p", pipe_dir]
+            "-r", run_dir]
     
     if haveHeader:
         cmd.append("--haveHeader")
     
     return(merge_items(cmd))
     
-def createMutMutPhasingCmd(samplename, loci_file_prefix, out_file_prefix, bam_file, bai_file, max_distance, bb_dir, run_dir, pipe_dir):
-    return(merge_items(["python", path.joinpath(pipe_dir, "dirichlet_preprocessing.py -c mutMutPhasing"),
+def createMutMutPhasingCmd(samplename, loci_file_prefix, out_file_prefix, bam_file, bai_file, max_distance, bb_dir, run_dir):
+    return(merge_items([DPP_SCRIPT, "-c mutMutPhasing",
                         "-s", samplename,
                         "--loci", loci_file_prefix+"${LSB_JOBINDEX}.txt",
                         "-o", out_file_prefix+"${LSB_JOBINDEX}.txt",
@@ -74,11 +71,10 @@ def createMutMutPhasingCmd(samplename, loci_file_prefix, out_file_prefix, bam_fi
                         "--bai", bai_file,
                         "--max_distance", str(max_distance),
                         "-b", bb_dir,
-                        "-r", run_dir,
-                        "-p", pipe_dir]))
+                        "-r", run_dir]))
     
-def createMutCnPhasingCmd(samplename, loci_file_prefix, baf_file, hap_info_prefix, hap_info_suffix, outfile_prefix, bam_file, bai_file, max_distance, bb_dir, run_dir, pipe_dir):
-    return(merge_items(["python", path.joinpath(pipe_dir, "dirichlet_preprocessing.py -c mutCNPhasing"),
+def createMutCnPhasingCmd(samplename, loci_file_prefix, baf_file, hap_info_prefix, hap_info_suffix, outfile_prefix, bam_file, bai_file, max_distance, bb_dir, run_dir):
+    return(merge_items([DPP_SCRIPT, "-c mutCNPhasing",
                         "-s", samplename,
                         "--loci", loci_file_prefix+"${LSB_JOBINDEX}.txt",
                         "--phased_baf", baf_file,
@@ -87,11 +83,10 @@ def createMutCnPhasingCmd(samplename, loci_file_prefix, baf_file, hap_info_prefi
                         "--bam", bam_file,
                         "--bai", bai_file,
                         "-b", bb_dir,
-                        "-r", run_dir,
-                        "-p", pipe_dir]))
+                        "-r", run_dir]))
     
-def createDpInputCmd(samplename, loci_file, allele_freq_file, subclone_file, rho_psi_file, mut_mut_phase_file, mut_cn_phase_file, gender, bb_dir, run_dir, pipe_dir):
-    return(merge_items(["python", path.joinpath(pipe_dir, "dirichlet_preprocessing.py -c dpInput"),
+def createDpInputCmd(samplename, loci_file, allele_freq_file, subclone_file, rho_psi_file, mut_mut_phase_file, mut_cn_phase_file, gender, bb_dir, run_dir):
+    return(merge_items([DPP_SCRIPT, "-c dpInput",
                         "-s", samplename,
                         "--loci", loci_file,
                         "--all_freq", allele_freq_file,
@@ -102,16 +97,15 @@ def createDpInputCmd(samplename, loci_file, allele_freq_file, subclone_file, rho
                         "-x", gender,
                         "-o", samplename+"_allDirichletProcessInfo.txt",
                         "-b", bb_dir,
-                        "-r", run_dir,
-                        "-p", pipe_dir]))
+                        "-r", run_dir]))
     
-def createDpIn2VcfCmd(vcf_file, dpIn_file, outfile, pipe_dir):
-    return(merge_items(["python", path.joinpath(pipe_dir, "dpIn2vcf.py"),
+def createDpIn2VcfCmd(vcf_file, dpIn_file, outfile):
+    return(merge_items([DPPVCF_SCRIPT,
                         "-v", vcf_file,
                         "-i", dpIn_file,
                         "-o", outfile]))
     
-def dp_preprocessing_pipeline(samplename, vcf_file, bam_file, bai_file, baf_file, hap_info_prefix, hap_info_suffix, subclone_file, rho_psi_file, chroms_file, max_distance, gender, bb_dir, log_dir, pipe_dir, run_dir):
+def dp_preprocessing_pipeline(samplename, vcf_file, bam_file, bai_file, baf_file, hap_info_prefix, hap_info_suffix, subclone_file, rho_psi_file, max_distance, gender, bb_dir, log_dir, run_dir):
     '''
     Creates a list of commands that together form the preprocessing pipeline. It consists of 3 separate threads (a,b,c)
     that come together in the last step. 
@@ -129,40 +123,40 @@ def dp_preprocessing_pipeline(samplename, vcf_file, bam_file, bai_file, baf_file
     outf = open(runscript, 'w')
     
     # Generate the loci file from vcf
-    cmd = createGenerateAFLociCmd(samplename, vcf_file, pipe_dir, run_dir)
+    cmd = createGenerateAFLociCmd(samplename, vcf_file, run_dir)
     outf.write(generateBsubCmd("loci_"+samplename, log_dir, cmd, queue="normal", mem=1, depends=None, isArray=False) + "\n")
     
     # Split the loci file per chromosome
-    cmd = createSplitLociCmd(samplename, samplename+".loci", samplename+"_loci_chr", ".txt", chroms_file, pipe_dir, run_dir)
+    cmd = createSplitLociCmd(samplename, samplename+".loci", samplename+"_loci_chr", ".txt", run_dir)
     outf.write(generateBsubCmd("splitLoci_"+samplename, log_dir, cmd, queue="normal", mem=1, depends=["loci_"+samplename], isArray=False) + "\n")
     
     # Get the allele frequencies in parallel per chromosome
-    cmd = createGetAlleleFrequencyCmd(samplename, samplename+"_loci_chr", bam_file, samplename+"_alleleFrequency_chr", pipe_dir, run_dir)
+    cmd = createGetAlleleFrequencyCmd(samplename, samplename+"_loci_chr", bam_file, samplename+"_alleleFrequency_chr", run_dir)
     writeSimpleShellScript(run_dir, "RunGetAlleleFrequency_"+samplename+".sh", [cmd])
     cmd = path.joinpath(run_dir, "RunGetAlleleFrequency_"+samplename+".sh")
     outf.write(generateBsubCmd("allCount_"+samplename+_arrayJobNameExt(no_chroms), log_dir, cmd, queue="normal", mem=1, depends=["splitLoci_"+samplename], isArray=True) + "\n")
     
     # Merge the counts together into a single file
     infile_list = [item[0]+str(item[1])+item[2] for item in zip([samplename+"_alleleFrequency_chr"]*no_chroms, range(1,no_chroms+1), [".txt"]*no_chroms)]
-    cmd = createConcatSplitFilesCmd(samplename, infile_list, samplename+"_alleleFrequency.txt", True, run_dir, pipe_dir)
+    cmd = createConcatSplitFilesCmd(samplename, infile_list, samplename+"_alleleFrequency.txt", True, run_dir)
     outf.write(generateBsubCmd("concCounts_"+samplename, log_dir, cmd, queue="normal", mem=1, depends=["allCount_"+samplename], isArray=False) + "\n")
     
     '''
     ########################################################### Mut Mut Phasing ###########################################################
     '''
-    cmd = createMutMutPhasingCmd(samplename, samplename+"_loci_chr", samplename+"_phasedmuts_chr", bam_file, bai_file, max_distance, bb_dir, run_dir, pipe_dir)
+    cmd = createMutMutPhasingCmd(samplename, samplename+"_loci_chr", samplename+"_phasedmuts_chr", bam_file, bai_file, max_distance, bb_dir, run_dir)
     writeSimpleShellScript(run_dir, "RunMutMutPhasing_"+samplename+".sh", [cmd])
     cmd = path.joinpath(run_dir, "RunMutMutPhasing_"+samplename+".sh")
     outf.write(generateBsubCmd("mmp_"+samplename+_arrayJobNameExt(no_chroms), log_dir, cmd, queue="normal", mem=2, depends=["splitLoci_"+samplename], isArray=True) + "\n")
     
     infile_list = [item[0]+str(item[1])+item[2] for item in zip([samplename+"_phasedmuts_chr"]*no_chroms, range(1,no_chroms+1), [".txt"]*no_chroms)]
-    cmd = createConcatSplitFilesCmd(samplename, infile_list, samplename+"_phasedmuts.txt", True, run_dir, pipe_dir)
+    cmd = createConcatSplitFilesCmd(samplename, infile_list, samplename+"_phasedmuts.txt", True, run_dir)
     outf.write(generateBsubCmd("concMMP_"+samplename, log_dir, cmd, queue="normal", mem=1, depends=["mmp_"+samplename], isArray=False) + "\n")
     
     '''
     ########################################################### Mut CN Phasing ###########################################################
     '''
-    cmd = createMutCnPhasingCmd(samplename, samplename+"_loci_chr", baf_file, hap_info_prefix, hap_info_suffix, samplename+"_phased_mutcn_chr", bam_file, bai_file, max_distance, bb_dir, run_dir, pipe_dir)
+    cmd = createMutCnPhasingCmd(samplename, samplename+"_loci_chr", baf_file, hap_info_prefix, hap_info_suffix, samplename+"_phased_mutcn_chr", bam_file, bai_file, max_distance, bb_dir, run_dir)
     writeSimpleShellScript(run_dir, "RunMutCnPhasing_"+samplename+".sh", [cmd])
     cmd = path.joinpath(run_dir, "RunMutCnPhasing_"+samplename+".sh")
     # Note: We run this bit only for the autosomal chromosomes. The Y chrom can never be phased, while X is not as simple to do.
@@ -170,19 +164,19 @@ def dp_preprocessing_pipeline(samplename, vcf_file, bam_file, bai_file, baf_file
     
     # Note: We run this bit only for the autosomal chromosomes. The Y chrom can never be phased, while X is not as simple to do.
     infile_list = [item[0]+str(item[1])+item[2] for item in zip([samplename+"_phased_mutcn_chr"]*no_chroms, range(1,no_aut_chroms+1), [".txt"]*no_chroms)]
-    cmd = createConcatSplitFilesCmd(samplename, infile_list, samplename+"_phasedmutCN.txt", True, run_dir, pipe_dir)
+    cmd = createConcatSplitFilesCmd(samplename, infile_list, samplename+"_phasedmutCN.txt", True, run_dir)
     outf.write(generateBsubCmd("concMCP_"+samplename, log_dir, cmd, queue="normal", mem=1, depends=["mcp_"+samplename], isArray=False) + "\n")   
     
     '''
     ########################################################### Generate DP input ###########################################################
     '''
-    cmd = createDpInputCmd(samplename, samplename+".loci", samplename+"_alleleFrequency.txt", subclone_file, rho_psi_file, samplename+"_phasedmuts.txt", samplename+"_phasedmutCN.txt", gender, bb_dir, run_dir, pipe_dir)
+    cmd = createDpInputCmd(samplename, samplename+".loci", samplename+"_alleleFrequency.txt", subclone_file, rho_psi_file, samplename+"_phasedmuts.txt", samplename+"_phasedmutCN.txt", gender, bb_dir, run_dir)
     outf.write(generateBsubCmd("dpIn_"+samplename, log_dir, cmd, queue="normal", mem=2, depends=["allCount_"+samplename, "concMMP_"+samplename, "concMCP_"+samplename], isArray=False) + "\n")
     
     '''
     ########################################################### DP input to VCF ###########################################################
     '''
-    cmd = createDpIn2VcfCmd(vcf_file, path.joinpath(run_dir,samplename+"_allDirichletProcessInfo.txt"), path.joinpath(run_dir, samplename+".dpIn.vcf"), pipe_dir)
+    cmd = createDpIn2VcfCmd(vcf_file, path.joinpath(run_dir,samplename+"_allDirichletProcessInfo.txt"), path.joinpath(run_dir, samplename+".dpIn.vcf"))
     outf.write(generateBsubCmd("dpIn2Vcf_"+samplename, log_dir, cmd, queue="normal", mem=2, depends=["dpIn_"+samplename], isArray=False) + "\n")
     
     outf.close()
@@ -253,12 +247,10 @@ def main(argv):
                                   hap_info_suffix=hap_info_suffix,
                                   subclone_file=subclone_file, 
                                   rho_psi_file=rho_psi_file, 
-                                  chroms_file=CHROMS_FILE, 
                                   max_distance=args.max_distance, 
                                   gender=gender, 
                                   bb_dir=bb_dir, 
                                   log_dir=log_dir, 
-                                  pipe_dir=PIPE_DIR, 
                                   run_dir=run_dir)
         runscripts_sample.append(runscript)
         
