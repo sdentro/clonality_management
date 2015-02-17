@@ -129,6 +129,7 @@ def generateParams(outfile, samplename, normal_file, tumour_file, gender, pipe_d
     fout.write("KNOWN_SNPS_X_PAR1="+KNOWN_SNPS_X_PAR1+"\n")
     fout.write("KNOWN_SNPS_X_PAR2="+KNOWN_SNPS_X_PAR2+"\n")
     fout.write("KNOWN_SNPS_X_NONPAR="+KNOWN_SNPS_X_NONPAR+"\n")
+    fout.write("ANNO_FILE="+ANNO_FILE+"\n")
     
     fout.close()
     
