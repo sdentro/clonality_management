@@ -85,7 +85,7 @@ def generateParams(outfile, samplename, normal_file, tumour_file, gender, pipe_d
     Creates the parameters file that BB_snp6 uses
     '''
     fout = open(outfile, 'w')
-    fout.write("RUN_DIR="+run_dir+"\n")
+    fout.write("RUN_DIR="+path.joinpath(run_dir, samplename)+"\n")
     fout.write("LOG_DIR="+path.joinpath(run_dir, samplename, LOG_DIR_NAME)+"\n")
     fout.write("PIPELINE_DIR="+pipe_dir+"\n")
     fout.write("SAMPLENAME="+samplename+"\n")
