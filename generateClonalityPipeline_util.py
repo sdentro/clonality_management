@@ -64,6 +64,9 @@ class SampleSheet(object):
     
     def getIdByTumourBam(self, bam_file):
         return(self._tumour_bam2tumour_id[bam_file])
+    
+    def getIdByNormalBam(self, bam_file):
+        return(self._normal_bam2tumour_id[bam_file])
 
 def read_sample_infile(infile):
     '''
