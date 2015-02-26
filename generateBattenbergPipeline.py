@@ -173,7 +173,7 @@ def generateBattenbergPipelineCGPIT(run_dir, log_dir, samplename, tumour_bam, no
 
 # Set some default options
 PIPE_DIR='/nfs/users/nfs_s/sd11/repo/battenberg'
-IMPUTEINFOFILE='impute_info.txt' #/lustre/scratch110/sanger/sd11/epitax/battenberg/PD7404a/impute_info.txt'
+IMPUTEINFOFILE='/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_impute/impute_info.txt'
 IMPUTE_EXE='impute_v2.2.2_x86_64_static/impute2' #/lustre/scratch110/sanger/sd11/epitax/battenberg/PD7404a/impute_v2.2.2_x86_64_static/impute2'
 PROBLEMLOCIFILE='/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_probloci/probloci.txt'
 IS_MALE=False
@@ -328,7 +328,7 @@ def main(argv):
 									min_rho=MIN_RHO, 
 									min_goodness_of_fit=MIN_GOODNESS_OF_FIT, 
 									balanced_threshold=BALANCED_THRESHOLD, 
-									imputeinfofile=path.joinpath(PIPE_DIR, IMPUTEINFOFILE), 
+									imputeinfofile=IMPUTEINFOFILE, 
 									impute_exe=path.joinpath(PIPE_DIR, IMPUTE_EXE), 
 									problemlocifile=PROBLEMLOCIFILE)
 				
