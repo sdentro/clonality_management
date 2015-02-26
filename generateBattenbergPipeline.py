@@ -176,6 +176,7 @@ PIPE_DIR='/nfs/users/nfs_s/sd11/repo/battenberg'
 IMPUTEINFOFILE='/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_impute/impute_info.txt'
 IMPUTE_EXE='impute_v2.2.2_x86_64_static/impute2' #/lustre/scratch110/sanger/sd11/epitax/battenberg/PD7404a/impute_v2.2.2_x86_64_static/impute2'
 PROBLEMLOCIFILE='/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_probloci/probloci.txt'
+G1000_PREFIX="/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_1000genomesloci2012/1000genomesAlleles2012_chr"
 IS_MALE=False
 PLATFORM_GAMMA=1
 PHASING_GAMMA=1
@@ -188,7 +189,7 @@ MIN_RHO=0.1
 MIN_GOODNESS_OF_FIT=0.63
 BALANCED_THRESHOLD=0.51
 
-def generateBattenbergConfig(tumourname, normalname, run_dir, pipeline_dir, log_dir, is_male=IS_MALE, platform_gamma=PLATFORM_GAMMA, phasing_gamma=PHASING_GAMMA, segmentation_gamma=SEGMENTATION_GAMMA, clonality_dist_metric=CLONALITY_DIST_METRIC, ascat_dist_metric=ASCAT_DIST_METRIC, min_ploidy=MIN_PLOIDY, max_ploidy=MAX_PLOIDY, min_rho=MIN_RHO, min_goodness_of_fit=MIN_GOODNESS_OF_FIT, balanced_threshold=BALANCED_THRESHOLD, imputeinfofile=IMPUTEINFOFILE, impute_exe=IMPUTE_EXE, problemlocifile=PROBLEMLOCIFILE):
+def generateBattenbergConfig(tumourname, normalname, run_dir, pipeline_dir, log_dir, g1000_prefix=G1000_PREFIX, is_male=IS_MALE, platform_gamma=PLATFORM_GAMMA, phasing_gamma=PHASING_GAMMA, segmentation_gamma=SEGMENTATION_GAMMA, clonality_dist_metric=CLONALITY_DIST_METRIC, ascat_dist_metric=ASCAT_DIST_METRIC, min_ploidy=MIN_PLOIDY, max_ploidy=MAX_PLOIDY, min_rho=MIN_RHO, min_goodness_of_fit=MIN_GOODNESS_OF_FIT, balanced_threshold=BALANCED_THRESHOLD, imputeinfofile=IMPUTEINFOFILE, impute_exe=IMPUTE_EXE, problemlocifile=PROBLEMLOCIFILE):
 	config_file = path.joinpath(run_dir, 'params'+tumourname+'.txt')
 	f = open(config_file, 'w')
 	f.write('RUN_DIR='+run_dir+'\n')
@@ -199,6 +200,7 @@ def generateBattenbergConfig(tumourname, normalname, run_dir, pipeline_dir, log_
 	f.write('PROBLEMLOCI='+problemlocifile+'\n')
 	f.write('IMPUTEINFOFILE='+imputeinfofile+'\n')
 	f.write('IMPUTE_EXE='+impute_exe+'\n')
+	f.write('G1000_PREFIX='+g1000_prefix+'\n')
 	if is_male: # == 'male' or is_male == 'Male':
 		f.write('IS_MALE=TRUE\n')
 	else:
@@ -217,7 +219,7 @@ def generateBattenbergConfig(tumourname, normalname, run_dir, pipeline_dir, log_
 	return config_file
 
 
-def generateBattenbergPipeline(tumourname, normalname, run_dir, pipeline_dir, log_dir, rewrite_params=False, is_male=IS_MALE, platform_gamma=PLATFORM_GAMMA, phasing_gamma=PHASING_GAMMA, segmentation_gamma=SEGMENTATION_GAMMA, clonality_dist_metric=CLONALITY_DIST_METRIC, ascat_dist_metric=ASCAT_DIST_METRIC, min_ploidy=MIN_PLOIDY, max_ploidy=MAX_PLOIDY, min_rho=MIN_RHO, min_goodness_of_fit=MIN_GOODNESS_OF_FIT, balanced_threshold=BALANCED_THRESHOLD, imputeinfofile=IMPUTEINFOFILE, impute_exe=IMPUTE_EXE, problemlocifile=PROBLEMLOCIFILE):
+def generateBattenbergPipeline(tumourname, normalname, run_dir, pipeline_dir, log_dir, rewrite_params=False, g1000_prefix=G1000_PREFIX, is_male=IS_MALE, platform_gamma=PLATFORM_GAMMA, phasing_gamma=PHASING_GAMMA, segmentation_gamma=SEGMENTATION_GAMMA, clonality_dist_metric=CLONALITY_DIST_METRIC, ascat_dist_metric=ASCAT_DIST_METRIC, min_ploidy=MIN_PLOIDY, max_ploidy=MAX_PLOIDY, min_rho=MIN_RHO, min_goodness_of_fit=MIN_GOODNESS_OF_FIT, balanced_threshold=BALANCED_THRESHOLD, imputeinfofile=IMPUTEINFOFILE, impute_exe=IMPUTE_EXE, problemlocifile=PROBLEMLOCIFILE):
 	# Create sample dir
 	#run_dir_sample = path.joinpath(run_dir,normalname+"_vs_"+tumourname)
 	
@@ -235,7 +237,7 @@ def generateBattenbergPipeline(tumourname, normalname, run_dir, pipeline_dir, lo
 			log_dir.makedirs()
 
 	# write the params file
-	config_file = generateBattenbergConfig(tumourname, normalname, run_dir, pipeline_dir, log_dir, is_male, platform_gamma, phasing_gamma, segmentation_gamma, clonality_dist_metric, ascat_dist_metric, min_ploidy, max_ploidy, min_rho, min_goodness_of_fit, balanced_threshold, imputeinfofile, impute_exe, problemlocifile)
+	config_file = generateBattenbergConfig(tumourname, normalname, run_dir, pipeline_dir, log_dir, g1000_prefix, is_male, platform_gamma, phasing_gamma, segmentation_gamma, clonality_dist_metric, ascat_dist_metric, min_ploidy, max_ploidy, min_rho, min_goodness_of_fit, balanced_threshold, imputeinfofile, impute_exe, problemlocifile)
 	
 # 	if not rewrite_params: # We're creating new BB pipelines, thus we need to write the RunCommands scripts
 # 		# write the RunCommands.sh with the only required parameter
@@ -250,7 +252,7 @@ def generateBattenbergPipeline(tumourname, normalname, run_dir, pipeline_dir, lo
 		
 	return (path.joinpath(pipeline_dir, 'RunCommands.sh')+' '+config_file), (path.joinpath(pipeline_dir, 'RunCommandsRerunFitCopynumber.sh')+' '+config_file)
 	
-def generateBattenbergPipelines(infile, run_dir, pipeline_dir, log_dir, rewrite_params=False, platform_gamma=PLATFORM_GAMMA, phasing_gamma=PHASING_GAMMA, segmentation_gamma=SEGMENTATION_GAMMA, clonality_dist_metric=CLONALITY_DIST_METRIC, ascat_dist_metric=ASCAT_DIST_METRIC, min_ploidy=MIN_PLOIDY, max_ploidy=MAX_PLOIDY, min_rho=MIN_RHO, min_goodness_of_fit=MIN_GOODNESS_OF_FIT, balanced_threshold=BALANCED_THRESHOLD, imputeinfofile=IMPUTEINFOFILE, impute_exe=IMPUTE_EXE, problemlocifile=PROBLEMLOCIFILE):
+def generateBattenbergPipelines(infile, run_dir, pipeline_dir, log_dir, rewrite_params=False, g1000_prefix=G1000_PREFIX, platform_gamma=PLATFORM_GAMMA, phasing_gamma=PHASING_GAMMA, segmentation_gamma=SEGMENTATION_GAMMA, clonality_dist_metric=CLONALITY_DIST_METRIC, ascat_dist_metric=ASCAT_DIST_METRIC, min_ploidy=MIN_PLOIDY, max_ploidy=MAX_PLOIDY, min_rho=MIN_RHO, min_goodness_of_fit=MIN_GOODNESS_OF_FIT, balanced_threshold=BALANCED_THRESHOLD, imputeinfofile=IMPUTEINFOFILE, impute_exe=IMPUTE_EXE, problemlocifile=PROBLEMLOCIFILE):
 	ss = read_sample_infile(infile)
 
 	# Create a directory for each normal vs tumour taking only the first normal mentioned in the samplesheet.
@@ -264,6 +266,7 @@ def generateBattenbergPipelines(infile, run_dir, pipeline_dir, log_dir, rewrite_
 									pipeline_dir=pipeline_dir, 
 									log_dir=log_dir,
 									rewrite_params=rewrite_params, 
+									g1000_prefix=g1000_prefix,
 									is_male=ss.isMale(samplename), 
 									platform_gamma=platform_gamma, 
 									phasing_gamma=phasing_gamma, 
@@ -317,7 +320,8 @@ def main(argv):
 									pipeline_dir=PIPE_DIR, 
 									log_dir=log_dir,
 									rewrite_params=False, 
-									is_male=ss.isMale(sample), 
+									is_male=ss.isMale(sample),
+									g1000_prefix=G1000_PREFIX, 
 									platform_gamma=PLATFORM_GAMMA, 
 									phasing_gamma=PHASING_GAMMA, 
 									segmentation_gamma=SEGMENTATION_GAMMA, 
