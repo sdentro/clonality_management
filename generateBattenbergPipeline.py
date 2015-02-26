@@ -220,36 +220,10 @@ def generateBattenbergConfig(tumourname, normalname, run_dir, pipeline_dir, log_
 
 
 def generateBattenbergPipeline(tumourname, normalname, run_dir, pipeline_dir, log_dir, g1000_prefix=G1000_PREFIX, is_male=IS_MALE, platform_gamma=PLATFORM_GAMMA, phasing_gamma=PHASING_GAMMA, segmentation_gamma=SEGMENTATION_GAMMA, clonality_dist_metric=CLONALITY_DIST_METRIC, ascat_dist_metric=ASCAT_DIST_METRIC, min_ploidy=MIN_PLOIDY, max_ploidy=MAX_PLOIDY, min_rho=MIN_RHO, min_goodness_of_fit=MIN_GOODNESS_OF_FIT, balanced_threshold=BALANCED_THRESHOLD, imputeinfofile=IMPUTEINFOFILE, impute_exe=IMPUTE_EXE, problemlocifile=PROBLEMLOCIFILE):
-	# Create sample dir
-	#run_dir_sample = path.joinpath(run_dir,normalname+"_vs_"+tumourname)
-	
-	#if log_dir is None:
-	#	log_dir = path.joinpath(run_dir, 'logs')
-	
-	#if not rewrite_params: # we're setting up a new pipeline, thus create dirs, symlinks and the lot
-		#run_dir_sample.makedirs()
-		# Make a symlink to the impute and 1000 genomes files that are needed
-		#path.joinpath(IMPUTEFILESDIR).symlink(path.joinpath(run_dir_sample, 'impute'))
-		#path.joinpath(G1000LOCIDIR).symlink(path.joinpath(run_dir_sample, '1000genomesloci'))
-		
-		# Create logs directory
-		#if log_dir is None:
-		#	log_dir.makedirs()
 
-	# write the params file
+	# Write the params file
 	config_file = generateBattenbergConfig(tumourname, normalname, run_dir, pipeline_dir, log_dir, g1000_prefix, is_male, platform_gamma, phasing_gamma, segmentation_gamma, clonality_dist_metric, ascat_dist_metric, min_ploidy, max_ploidy, min_rho, min_goodness_of_fit, balanced_threshold, imputeinfofile, impute_exe, problemlocifile)
-	
-# 	if not rewrite_params: # We're creating new BB pipelines, thus we need to write the RunCommands scripts
-# 		# write the RunCommands.sh with the only required parameter
-# 		f = open(path.joinpath(run_dir_sample,'RunCommands.sh'),'w')
-# 		f.write(path.joinpath(pipeline_dir, 'RunCommands.sh')+' '+config_file+'\n')
-# 		f.close()
-# 		
-# 		# Create a script to rerun from fitcopynumber onwards, after a change in parameters
-# 		f = open(path.joinpath(run_dir_sample,'RunCommandsRerunFitCopynumber.sh'),'w')
-# 		f.write(path.joinpath(pipeline_dir, 'RunCommandsRerunFitCopynumber.sh')+' '+config_file+'\n')
-# 		f.close()
-		
+	# Return run commands
 	return (path.joinpath(pipeline_dir, 'RunCommands.sh')+' '+config_file), (path.joinpath(pipeline_dir, 'RunCommandsRerunFitCopynumber.sh')+' '+config_file)
 	
 def generateBattenbergPipelines(infile, run_dir, pipeline_dir, log_dir, g1000_prefix=G1000_PREFIX, platform_gamma=PLATFORM_GAMMA, phasing_gamma=PHASING_GAMMA, segmentation_gamma=SEGMENTATION_GAMMA, clonality_dist_metric=CLONALITY_DIST_METRIC, ascat_dist_metric=ASCAT_DIST_METRIC, min_ploidy=MIN_PLOIDY, max_ploidy=MAX_PLOIDY, min_rho=MIN_RHO, min_goodness_of_fit=MIN_GOODNESS_OF_FIT, balanced_threshold=BALANCED_THRESHOLD, imputeinfofile=IMPUTEINFOFILE, impute_exe=IMPUTE_EXE, problemlocifile=PROBLEMLOCIFILE):
