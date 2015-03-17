@@ -29,8 +29,8 @@ def createGenerateAFLociCmd(samplename, outfile_postfix, vcf_file, run_dir):
 						"-s", samplename,
 						"-o", samplename+outfile_postfix,
 						"-v", vcf_file,
-			"-f", CHROMS_FAI,
-			"-i", IGNORE_FILE,
+						"-f", CHROMS_FAI,
+						"-i", IGNORE_FILE,
 						"-r", run_dir]))
 	
 def createSplitLociCmd(samplename, loci_file, prefix, postfix, fai_file, ignore_file, run_dir):
@@ -41,8 +41,8 @@ def createSplitLociCmd(samplename, loci_file, prefix, postfix, fai_file, ignore_
 						"-i", ignore_file,
 						"--prefix", prefix,
 						"--postfix", postfix,
-			"-f", CHROMS_FAI,
-			"-i", IGNORE_FILE,
+						"-f", CHROMS_FAI,
+						"-i", IGNORE_FILE,
 						"-r", run_dir]))
 	
 def createGetAlleleFrequencyCmd(samplename, loci_file_prefix, bam_file, out_file_prefix, run_dir, split_chroms):
@@ -174,7 +174,7 @@ def dp_preprocessing_pipeline(samplename, vcf_file, bam_file, bai_file, baf_file
 	if split_chroms:
 		outf.write(generateBsubCmd("allCount_"+samplename+_arrayJobNameExt(no_chroms), log_dir, cmd, queue="normal", mem=1, depends=["splitLoci_"+samplename], isArray=True) + "\n")
 	else:
-	   outf.write(generateBsubCmd("allCount_"+samplename, log_dir, cmd, queue="normal", mem=1, depends=["loci_"+samplename], isArray=False) + "\n")
+		outf.write(generateBsubCmd("allCount_"+samplename, log_dir, cmd, queue="normal", mem=1, depends=["loci_"+samplename], isArray=False) + "\n")
 
 	#TODO: dows the previous step create the same output file as this split step? 
 	if split_chroms:
@@ -192,7 +192,7 @@ def dp_preprocessing_pipeline(samplename, vcf_file, bam_file, bai_file, baf_file
 	if split_chroms:
 		outf.write(generateBsubCmd("mmp_"+samplename+_arrayJobNameExt(no_chroms), log_dir, cmd, queue="normal", mem=2, depends=["splitLoci_"+samplename], isArray=True) + "\n")
 	else:
-	   outf.write(generateBsubCmd("mmp_"+samplename, log_dir, cmd, queue="normal", mem=2, depends=["loci_"+samplename], isArray=False) + "\n")
+		outf.write(generateBsubCmd("mmp_"+samplename, log_dir, cmd, queue="normal", mem=2, depends=["loci_"+samplename], isArray=False) + "\n")
 
 	if split_chroms:
 		infile_list = [item[0]+str(item[1])+item[2] for item in zip([samplename+"_phasedmuts_chr"]*no_chroms, range(1,no_chroms+1), [".txt"]*no_chroms)]
@@ -209,9 +209,9 @@ def dp_preprocessing_pipeline(samplename, vcf_file, bam_file, bai_file, baf_file
 		if hap_concat_file.exists(): hap_concat_file.remove()
 		
 		# Concatenate all the split files
-		for chrom in range(1, no_chroms):
+		for chrom in range(1, no_chroms_phasing):
 			cmd = ["cat", path.joinpath(bb_dir, hap_info_prefix)+str(chrom)+hap_info_suffix, ">>", hap_concat_file]
-			m, e, c = run_command(merge_items(cmd, sep=" "))  
+			_, _, _ = run_command(merge_items(cmd, sep=" "))  
 		
 		# Redefine prefix to remove the _chr bit
 		hap_info_prefix = hap_info_prefix.strip("_chr")
@@ -223,8 +223,7 @@ def dp_preprocessing_pipeline(samplename, vcf_file, bam_file, bai_file, baf_file
 		# Note: We run this bit only for the autosomal chromosomes. The Y chrom can never be phased, while X is not as simple to do.
 		outf.write(generateBsubCmd("mcp_"+samplename+_arrayJobNameExt(no_chroms_phasing), log_dir, cmd, queue="normal", mem=2, depends=["splitLoci_"+samplename], isArray=True) + "\n")
 	else:
-	# TODO: this should not take chromosome X in!
-	   outf.write(generateBsubCmd("mcp_"+samplename, log_dir, cmd, queue="normal", mem=10, depends=["loci_"+samplename], isArray=False) + "\n")
+		outf.write(generateBsubCmd("mcp_"+samplename, log_dir, cmd, queue="normal", mem=10, depends=["loci_"+samplename], isArray=False) + "\n")
 
 
 	if split_chroms:
@@ -236,11 +235,11 @@ def dp_preprocessing_pipeline(samplename, vcf_file, bam_file, bai_file, baf_file
 	'''
 	########################################################### Generate DP input ###########################################################
 	'''
-	cmd = createDpInputCmd(samplename, samplename+".loci", samplename+"_alleleFrequency.txt", subclone_file, rho_psi_file, samplename+"_phasedmuts.txt", samplename+"_phasedmutCN.txt", gender, bb_dir, run_dir)
+	cmd = createDpInputCmd(samplename, afloci_file_postfix, samplename+"_alleleFrequency.txt", subclone_file, rho_psi_file, samplename+"_phasedmuts.txt", samplename+"_phasedmutCN.txt", gender, bb_dir, run_dir)
 	if split_chroms:
 		outf.write(generateBsubCmd("dpIn_"+samplename, log_dir, cmd, queue="normal", mem=2, depends=["concCounts_"+samplename, "concMMP_"+samplename, "concMCP_"+samplename], isArray=False) + "\n")
 	else:
-	   outf.write(generateBsubCmd("dpIn_"+samplename, log_dir, cmd, queue="normal", mem=2, depends=["allCount_"+samplename, "mmp_"+samplename, "mcp_"+samplename], isArray=False) + "\n")
+		outf.write(generateBsubCmd("dpIn_"+samplename, log_dir, cmd, queue="normal", mem=2, depends=["allCount_"+samplename, "mmp_"+samplename, "mcp_"+samplename], isArray=False) + "\n")
 
 	'''
 	########################################################### DP input to VCF ###########################################################
