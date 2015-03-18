@@ -29,10 +29,6 @@ IMPUTEINFOFILE="/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_
 IMPUTE_EXE="impute2"
 SNPPOS="/lustre/scratch112/sanger/cancer_external/DBGap/TCGA_phs000178.v8.p7/analysis/ASCAT/pvl/PRAD/SNPpos.txt"
 GC_SNP6="/lustre/scratch112/sanger/cancer_external/DBGap/TCGA_phs000178.v8.p7/analysis/ASCAT/pvl/PRAD/GC_SNP6.txt"
-# KNOWN_SNPS_AUTOSOMES_PREFIX="/lustre/scratch110/sanger/dw9/haplotype_pipeline/impute/ALL_1000G_phase1integrated_feb2012_impute/ALL_1000G_phase1integrated_feb2012_chr"
-# KNOWN_SNPS_X_PAR1="/lustre/scratch110/sanger/dw9/haplotype_pipeline/impute/ALL_1000G_phase1integrated_feb2012_impute/ALL_1000G_phase1integrated_feb2012_chrX_PAR1_impute.legend"
-# KNOWN_SNPS_X_PAR2="/lustre/scratch110/sanger/dw9/haplotype_pipeline/impute/ALL_1000G_phase1integrated_feb2012_impute/ALL_1000G_phase1integrated_feb2012_chrX_PAR2_impute.legend"
-# KNOWN_SNPS_X_NONPAR="/lustre/scratch110/sanger/dw9/haplotype_pipeline/impute/ALL_1000G_phase1integrated_feb2012_impute/ALL_1000G_phase1integrated_feb2012_chrX_nonPAR_impute.legend"
 ANNO_FILE="/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_snp6/GenomeWideSNP_6.na32.annot.subset.csv"
 SNP6_REF_INFO_FILE="/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_snp6/snp6_ref_info_file.txt"
 BIRDSEED_REPORT_FILE="birdseed.report.txt"
@@ -133,10 +129,6 @@ def generateParams(outfile, samplename, normal_file, tumour_file, gender, pipe_d
     fout.write("IMPUTE_EXE="+IMPUTE_EXE+"\n")    
     fout.write("SNPPOS="+SNPPOS+"\n")
     fout.write("GC_SNP6="+GC_SNP6+"\n")
-    #fout.write("KNOWN_SNPS_AUTOSOMES_PREFIX="+KNOWN_SNPS_AUTOSOMES_PREFIX+"\n")
-    #fout.write("KNOWN_SNPS_X_PAR1="+KNOWN_SNPS_X_PAR1+"\n")
-    #fout.write("KNOWN_SNPS_X_PAR2="+KNOWN_SNPS_X_PAR2+"\n")
-    #fout.write("KNOWN_SNPS_X_NONPAR="+KNOWN_SNPS_X_NONPAR+"\n")
     fout.write("ANNO_FILE="+ANNO_FILE+"\n")
     fout.write("SNP6_REF_INFO_FILE="+SNP6_REF_INFO_FILE+"\n")
     fout.write("BIRDSEED_REPORT_FILE="+BIRDSEED_REPORT_FILE+"\n")
@@ -150,7 +142,7 @@ def generateParams(outfile, samplename, normal_file, tumour_file, gender, pipe_d
 def main(argv):
     parser = argparse.ArgumentParser(prog='Battenberg SNP6',
                              formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("-i", required=True, type=str, help="Input file containing list of samples")
+    parser.add_argument("-i", required=True, type=str, help="Input file containing: column of sample names, column of normals, column of tumours, column of genders. Header must start with #.")
     parser.add_argument("-p", required=False, type=str, help="Directory where the pipeline is installed")
     parser.add_argument("-r", required=True, type=str, help="Directory where pipelines will be ran")
     
