@@ -235,7 +235,7 @@ def dp_preprocessing_pipeline(samplename, vcf_file, bam_file, bai_file, baf_file
 	'''
 	########################################################### Generate DP input ###########################################################
 	'''
-	cmd = createDpInputCmd(samplename, afloci_file_postfix, samplename+"_alleleFrequency.txt", subclone_file, rho_psi_file, samplename+"_phasedmuts.txt", samplename+"_phasedmutCN.txt", gender, bb_dir, run_dir)
+	cmd = createDpInputCmd(samplename, samplename+afloci_file_postfix, samplename+"_alleleFrequency.txt", subclone_file, rho_psi_file, samplename+"_phasedmuts.txt", samplename+"_phasedmutCN.txt", gender, bb_dir, run_dir)
 	if split_chroms:
 		outf.write(generateBsubCmd("dpIn_"+samplename, log_dir, cmd, queue="normal", mem=2, depends=["concCounts_"+samplename, "concMMP_"+samplename, "concMCP_"+samplename], isArray=False) + "\n")
 	else:
