@@ -3,7 +3,7 @@ from path import path
 
 from util import merge_items
 
-SCRIPT = "/software/R-3.1.0/bin/Rscript ~/repo/dirichlet/dp_combined/qc.R" 
+SCRIPT = "Rscript ~/repo/dirichlet/dp_combined/qc.R" 
 
 
 def generateQcrunScript(dp_master_file, dp_in_dir, qc_dir):
