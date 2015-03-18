@@ -47,6 +47,15 @@ class SampleSheet(object):
             normals_list.extend(v)
         return normals_list
     
+#     def getAllbbDirsList(self):
+#         '''
+#         Returns a list of bb_dirs mentioned in the sample sheet
+#         '''
+#         bb_dir_list = list()
+#         for v in self._sample2bb_dir.values():
+#             bb_dir_list.extend(v)
+#         return bb_dir_list
+    
     def getTumours(self, samplename):
         return self._sample2tumours[samplename] 
     
@@ -70,7 +79,11 @@ class SampleSheet(object):
 
 def read_sample_infile(infile):
     '''
-    Reads in a table: samplename\tmale\tnormalsubsample\ttumoursubsample
+    Reads in a table: samplename\ttumour_id\ttumour_bam\tnormal_id\tnormal_bam\tbb_dir\tgender\tvariants
+    Headers should be commented out with a #
+    
+    It checks whether a sample name is already known, if that is the case additional tumour ids and bams are 
+    saved, normals not, bb_dirs not
     
     Creates and returns a SampleSheet object.
     '''
@@ -100,7 +113,7 @@ def read_sample_infile(infile):
             tumour_bam[c1] = tumour_bam[c1] + c3
             normal_ids[c1] = normal_ids[c1] + c4
             normal_bam[c1] = normal_bam[c1] + c5
-            bb_dir[c1] = bb_dir[c1] + c6
+            bb_dir[c1] = bb_dir[c1] + (c2, c6)
             sex[c1] = sex[c1] + c7
             variants[c1] = variants[c1] + c8
             tumour_normal_pairs_id[c1] = tumour_normal_pairs_id[c1] + (c2, c4)
@@ -111,7 +124,7 @@ def read_sample_infile(infile):
             tumour_bam[c1] = [c3]
             normal_ids[c1] = [c4]
             normal_bam[c1] = [c5]
-            bb_dir[c1] = [c6]
+            bb_dir[c1] = [(c2, c6)]
             sex[c1] = [c7]
             variants[c1] = [c8]
             tumour_normal_pairs_id[c1] = [(c2, c4)]
