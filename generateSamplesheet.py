@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import sys, argparse
 from util import merge_items, read_list_of_items
 
@@ -46,9 +48,8 @@ def main(argv):
     parser.add_argument("-v", required=True, type=str, help="File containing list of VCF files")
     parser.add_argument("-x", required=True, type=str, help="File containing list of genders for each samplename")
     parser.add_argument("-o", required=True, type=str, help="Output file")
+    parser.add_argument("-b", required=True, type=str, help="Full path to file containing list of Battenberg directories")    
     
-    # Optional
-    parser.add_argument("-b", type=str, help="Full path to file containing list of Battenberg directories")
     args = parser.parse_args()
     generateSamplesheet(args.s, args.bt, args.idt, args.bn, args.idn, args.x, args.b, args.v, args.o)
     
