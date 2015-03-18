@@ -60,9 +60,9 @@ def generateBattenbergSNP6Pipeline(inputfile, pipe_dir, run_dir):
     master_run_script = open(path.joinpath(run_dir, "RunCommands.sh"), 'w')
     
     for samplename,values in samples.iteritems():
-        # create dir for samplename and logs
-        path.joinpath(run_dir, samplename).mkdir()
-        path.joinpath(run_dir, samplename, "logs").mkdir()
+        # create dir for tumour and logs
+        path.joinpath(run_dir, values['tumour_id']).mkdir()
+        path.joinpath(run_dir, values['tumour_id'], "logs").mkdir()
         
         # stick params file in there
         paramsFile = path.joinpath(run_dir, samplename, "params"+samplename+".txt")
