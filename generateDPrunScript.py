@@ -1,9 +1,11 @@
+#!/usr/bin/env python
+
 import argparse, sys, os, stat
 from path import path
 from util import merge_items
 
 LIBPATH = "/nfs/users/nfs_s/sd11/repo/dirichlet/dp_combined/"
-SCRIPT = merge_items(["/nfs/users/nfs_s/sd11/software/bin/Rscript", LIBPATH+"/RunDP_pipeline.R"])
+SCRIPT = merge_items(["Rscript", LIBPATH+"/RunDP_pipeline.R"])
 
 def _write_script(filename, lines):
     outf = open(filename, "w")
