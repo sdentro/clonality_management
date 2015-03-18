@@ -76,6 +76,15 @@ class SampleSheet(object):
     
     def getIdByNormalBam(self, bam_file):
         return(self._normal_bam2tumour_id[bam_file])
+    
+    def getBbDirByTumourId(self, sample, tumourid):
+        for s in self.getSamplenames():
+            for ti,bb_dir in self._sample2bb_dir[s]:
+                if ti==tumourid:
+                    return bb_dir
+        print("Warning: Did not find bb_dir in samplesheet for "+sample+", "+tumourid+" combo")
+        return ""
+        
 
 def read_sample_infile(infile):
     '''
