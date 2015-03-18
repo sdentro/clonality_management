@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import os, stat, sys, argparse
 from path import path
 
@@ -22,15 +24,21 @@ MIN_RHO=0.1
 MIN_GOODNESS_OF_FIT=0.63
 BALANCED_THRESHOLD=0.51
 
+PIPE_DIR="/nfs/users/nfs_s/sd11/software/pipelines/battenberg_snp6_v1.0/"
 IMPUTEINFOFILE="/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_impute/impute_info.txt"
-IMPUTE_EXE="/nfs/users/nfs_s/sd11/repo/battenberg_snp6/impute_v2.2.2_x86_64_static/impute2"
+IMPUTE_EXE="impute2"
 SNPPOS="/lustre/scratch112/sanger/cancer_external/DBGap/TCGA_phs000178.v8.p7/analysis/ASCAT/pvl/PRAD/SNPpos.txt"
 GC_SNP6="/lustre/scratch112/sanger/cancer_external/DBGap/TCGA_phs000178.v8.p7/analysis/ASCAT/pvl/PRAD/GC_SNP6.txt"
-KNOWN_SNPS_AUTOSOMES_PREFIX="/lustre/scratch110/sanger/dw9/haplotype_pipeline/impute/ALL_1000G_phase1integrated_feb2012_impute/ALL_1000G_phase1integrated_feb2012_chr"
-KNOWN_SNPS_X_PAR1="/lustre/scratch110/sanger/dw9/haplotype_pipeline/impute/ALL_1000G_phase1integrated_feb2012_impute/ALL_1000G_phase1integrated_feb2012_chrX_PAR1_impute.legend"
-KNOWN_SNPS_X_PAR2="/lustre/scratch110/sanger/dw9/haplotype_pipeline/impute/ALL_1000G_phase1integrated_feb2012_impute/ALL_1000G_phase1integrated_feb2012_chrX_PAR2_impute.legend"
-KNOWN_SNPS_X_NONPAR="/lustre/scratch110/sanger/dw9/haplotype_pipeline/impute/ALL_1000G_phase1integrated_feb2012_impute/ALL_1000G_phase1integrated_feb2012_chrX_nonPAR_impute.legend"
+# KNOWN_SNPS_AUTOSOMES_PREFIX="/lustre/scratch110/sanger/dw9/haplotype_pipeline/impute/ALL_1000G_phase1integrated_feb2012_impute/ALL_1000G_phase1integrated_feb2012_chr"
+# KNOWN_SNPS_X_PAR1="/lustre/scratch110/sanger/dw9/haplotype_pipeline/impute/ALL_1000G_phase1integrated_feb2012_impute/ALL_1000G_phase1integrated_feb2012_chrX_PAR1_impute.legend"
+# KNOWN_SNPS_X_PAR2="/lustre/scratch110/sanger/dw9/haplotype_pipeline/impute/ALL_1000G_phase1integrated_feb2012_impute/ALL_1000G_phase1integrated_feb2012_chrX_PAR2_impute.legend"
+# KNOWN_SNPS_X_NONPAR="/lustre/scratch110/sanger/dw9/haplotype_pipeline/impute/ALL_1000G_phase1integrated_feb2012_impute/ALL_1000G_phase1integrated_feb2012_chrX_nonPAR_impute.legend"
 ANNO_FILE="/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_snp6/GenomeWideSNP_6.na32.annot.subset.csv"
+SNP6_REF_INFO_FILE="/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_snp6/snp6_ref_info_file.txt"
+BIRDSEED_REPORT_FILE="birdseed.report.txt"
+APT_PROBESET_GENOTYPE_EXE="~pvl/PennCNV/apt-1.12.0-20091012-i386-intel-linux/bin/apt-probeset-genotype"
+APT_PROBESET_SUMMARIZE_EXE="~pvl/PennCNV/apt-1.12.0-20091012-i386-intel-linux/bin/apt-probeset-summarize"
+NORM_GENO_CLUST_EXE="~pvl/PennCNV/gw6/bin/normalize_affy_geno_cluster.pl"
 
 RUN_SCRIPT = "RunCommands2014farm3_SNP6.sh"
 
@@ -88,9 +96,9 @@ def generateParams(outfile, samplename, normal_file, tumour_file, gender, pipe_d
     fout.write("RUN_DIR="+path.joinpath(run_dir, samplename)+"\n")
     fout.write("LOG_DIR="+path.joinpath(run_dir, samplename, LOG_DIR_NAME)+"\n")
     fout.write("PIPELINE_DIR="+pipe_dir+"\n")
-    fout.write("SAMPLENAME="+samplename+"\n")
-    fout.write("NORMAL_CEL="+normal_file+"\n")
-    fout.write("TUMOUR_CEL="+tumour_file+"\n")
+    fout.write("TUMOURNAME="+samplename+"\n")
+    fout.write("NORMALCEL="+normal_file+"\n")
+    fout.write("TUMOURCEL="+tumour_file+"\n")
 
     if gender == "male" or gender == "Male":
         is_male = "TRUE"
@@ -125,11 +133,16 @@ def generateParams(outfile, samplename, normal_file, tumour_file, gender, pipe_d
     fout.write("IMPUTE_EXE="+IMPUTE_EXE+"\n")    
     fout.write("SNPPOS="+SNPPOS+"\n")
     fout.write("GC_SNP6="+GC_SNP6+"\n")
-    fout.write("KNOWN_SNPS_AUTOSOMES_PREFIX="+KNOWN_SNPS_AUTOSOMES_PREFIX+"\n")
-    fout.write("KNOWN_SNPS_X_PAR1="+KNOWN_SNPS_X_PAR1+"\n")
-    fout.write("KNOWN_SNPS_X_PAR2="+KNOWN_SNPS_X_PAR2+"\n")
-    fout.write("KNOWN_SNPS_X_NONPAR="+KNOWN_SNPS_X_NONPAR+"\n")
+    #fout.write("KNOWN_SNPS_AUTOSOMES_PREFIX="+KNOWN_SNPS_AUTOSOMES_PREFIX+"\n")
+    #fout.write("KNOWN_SNPS_X_PAR1="+KNOWN_SNPS_X_PAR1+"\n")
+    #fout.write("KNOWN_SNPS_X_PAR2="+KNOWN_SNPS_X_PAR2+"\n")
+    #fout.write("KNOWN_SNPS_X_NONPAR="+KNOWN_SNPS_X_NONPAR+"\n")
     fout.write("ANNO_FILE="+ANNO_FILE+"\n")
+    fout.write("SNP6_REF_INFO_FILE="+SNP6_REF_INFO_FILE+"\n")
+    fout.write("BIRDSEED_REPORT_FILE="+BIRDSEED_REPORT_FILE+"\n")
+    fout.write("APT_PROBESET_GENOTYPE_EXE="+APT_PROBESET_GENOTYPE_EXE+"\n")
+    fout.write("APT_PROBESET_SUMMARIZE_EXE="+APT_PROBESET_SUMMARIZE_EXE+"\n")
+    fout.write("NORM_GENO_CLUST_EXE="+NORM_GENO_CLUST_EXE+"\n")
     
     fout.close()
     
@@ -138,8 +151,10 @@ def main(argv):
     parser = argparse.ArgumentParser(prog='Battenberg SNP6',
                              formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("-i", required=True, type=str, help="Input file containing list of samples")
-    parser.add_argument("-p", required=True, type=str, help="Directory where the pipeline is installed")
+    parser.add_argument("-p", required=False, type=str, help="Directory where the pipeline is installed")
     parser.add_argument("-r", required=True, type=str, help="Directory where pipelines will be ran")
+    
+    parser.set_defaults(p=PIPE_DIR)
     args = parser.parse_args()
     
     generateBattenbergSNP6Pipeline(args.i, args.p, args.r)
