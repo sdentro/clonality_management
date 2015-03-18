@@ -1,75 +1,60 @@
 # generateClonalityPipeline
-A script that will create an LSF based analysis pipeline
+A series of example scripts/commands to create the full project setup.
 
-### Make project directory
-mkdir /lustre/scratch110/sanger/sd11/epitax
+## Setup the directory
+cd /lustre/scratch110/sanger/sd11
+mkdir dp_test
+cd dp_test
 
-### Create project setup
-python ~/repo/generateClonalityPipeline/setupProject.py -b /lustre/scratch110/sanger/sd11/dp_test
+python ~/repo/generateClonalityPipeline/setupProject.py -b $PWD
 
-### Create the required files
- * Create a file that lists per line (tab separated):
- 	* individual id
- 	* "male" or "female"
- 	* comma separated list of normals
- 	* comma separated list of tumours
- * Put the BAM files or symlinks in the bam directory
+## Setup the bam files
+cp ../epitax/bam/*txt bam/
+cp ../epitax/bam/*sh bam/
+cd bam
+./create_links.sh 
+cd ../
 
-### Generate allele frequency loci for mutation calls
-python ~/repo/generateClonalityPipeline/generateAlleleFrequencyLoci.py -i /lustre/scratch110/sanger/sd11/dp_test/samplesheet.txt -v /lustre/scratch110/sanger/sd11/dp_test/variants -o /lustre/scratch110/sanger/sd11/dp_test/haplotype/mutation_loci
+## Setup the variant files
+cp ../epitax/variants/filtered_vcf/*gz variants/
 
-### Generate GetAlleleFrequency scripts for the mutation call loci
-python ~/repo/generateClonalityPipeline/generateAlleleFrequencyScripts.py -i /lustre/scratch110/sanger/sd11/dp_test/samplesheet.txt -r /lustre/scratch110/sanger/sd11/dp_test/haplotype/mutation_loci -b /lustre/scratch110/sanger/sd11/dp_test/bam -l /lustre/scratch110/sanger/sd11/dp_test/haplotype/mutation_loci --log /lustre/scratch110/sanger/sd11/dp_test/haplotype/mutations/logs --nonormals
+## Setup BB
+rm battenberg
+ln -s ../epitax/battenberg battenberg
 
-### 1000 genomes loci
-python ~/repo/generateClonalityPipeline/generateAlleleFrequencyScripts.py -i /lustre/scratch110/sanger/sd11/dp_test/samplesheet.txt -r /lustre/scratch110/sanger/sd11/dp_test/haplotype/G1000 -b /lustre/scratch110/sanger/sd11/dp_test/bam --log /lustre/scratch110/sanger/sd11/dp_test/haplotype/G1000/logs
+## Create samplesheet - This step is different for each project
+find $PWD/variants | grep -v tbi | grep -v sh | grep -v filtered | sort | grep gz > samplesheet/input/variants.txt
+for item in `cat samplesheet/input/variants.txt`; do sample=`basename ${item} | sed 's/a.filt.vcf.gz//'g`; echo ${sample}; done > samplesheet/input/samplenames.txt
 
-### Battenberg
-> Don't forget to copy the GetAlleleFrequencies output for both tumour and normal into the sample Battenberg directory
+for item in `cat samplesheet/input/samplenames.txt`; do echo $PWD/bam/${item}"a.bam"; done > samplesheet/input/bam_tumour.txt
+for item in `cat samplesheet/input/samplenames.txt`; do echo ${item}"a"; done > samplesheet/input/id_tumour.txt
+for item in `cat samplesheet/input/samplenames.txt`; do echo $PWD/bam/${item}"b.bam"; done > samplesheet/input/bam_normal.txt
+for item in `cat samplesheet/input/samplenames.txt`; do echo ${item}"b"; done > samplesheet/input/id_normal.txt
 
-python ~/repo/generateClonalityPipeline/generateBattenbergPipeline.py -i /lustre/scratch110/sanger/sd11/dp_test/samplesheet.txt -r /lustre/scratch110/sanger/sd11/dp_test/battenberg/ -p ~/repo/battenberg/
+for item in `cat samplesheet/input/samplenames.txt`; do echo "female"; done > samplesheet/input/gender.txt
 
-### Battenberg - update params
+for item in `cat samplesheet/input/samplenames.txt`; do echo "${PWD}/battenberg/${item}a"; done > samplesheet/input/bb_dirs.txt
 
-python ~/repo/generateClonalityPipeline/generateBattenbergPipeline.py -i /lustre/scratch110/sanger/sd11/dp_test/samplesheet.txt -r /lustre/scratch110/sanger/sd11/dp_test/battenberg/ -p ~/repo/battenberg/ --rewrite_params
+python ~/repo/generateClonalityPipeline/generateSamplesheet.py -s samplesheet/input/samplenames.txt --bt samplesheet/input/bam_tumour.txt --idt samplesheet/input/id_tumour.txt --bn samplesheet/input/bam_normal.txt --idn samplesheet/input/id_normal.txt -x samplesheet/input/gender.txt -v samplesheet/input/variants.txt -b samplesheet/input/bb_dirs.txt -o samplesheet/output/test_samplesheet.txt
 
-### Create symlinks to AlleleFrequencies files
-> This interface has changed!
+## Generate the pre-processing pipeline
+python ~/repo/dirichlet_preprocessing/generate_inputfile.py --ss samplesheet/output/test_samplesheet.txt -o dirichlet_preprocessing/input/test.txt
+cd dirichlet_preprocessing
+python ~/repo/generateClonalityPipeline/generatePreprocessingPipeline.py -s input/test.txt -r output -f ${LUSTRE}/Documents/GenomeFiles/refs_icgc_pancan/genome.fa.fai -i ${LUSTRE}/Documents/GenomeFiles/battenberg_ignore/ignore.txt --ip ${LUSTRE}/Documents/GenomeFiles/battenberg_ignore/ignore_mut_cn_phasing.txt
 
-python ~/repo/generateClonalityPipeline/generateAlleleFrequencySymlinks.py -i /lustre/scratch110/sanger/sd11/dp_test/samplesheet.txt -s /lustre/scratch110/sanger/sd11/dp_test/haplotype/G1000/ -o /lustre/scratch110/sanger/sd11/dp_test/battenberg/ --out_sample_subdir
+## Submit and check on the pre-processing pipeline
+./RunCommands.sh
+python ~/repo/dirichlet_preprocessing/check_logs.py -s input/test.txt -r $PWD/output
 
-==== Tested to here ====
+## After finish copy the completed output files
+cd ../
+find dirichlet_preprocessing/output/ | grep allDiri | xargs -i cp {} dirichlet_input
 
-### Generate dp input
+## Create the DP master file
+python ~/repo/generateClonalityPipeline/generateDPDataFile.py -p test -i samplesheet/output/test_samplesheet.txt -d $PWD/dirichlet_input/ -b $PWD/battenberg/ -r $PWD/dirichlet/
 
-python ~/repo/generateClonalityPipeline/generateDPInput.py -i /lustre/scratch110/sanger/sd11/dp_test/samplesheet.txt -r /lustre/scratch110/sanger/sd11/dp_test/ -o /lustre/scratch110/sanger/sd11/dp_test/dirichlet_input/
- 
-### Generate 1D Dirichlet Process pipeline
-> Note: deprecated
+## Create the QC run script
+python ~/repo/generateClonalityPipeline/generateQCrunScript.py -i $PWD/dirichlet/test.txt -d $PWD/dirichlet_input/ -q $PWD/qc/
 
-python ~/repo/generateClonalityPipeline/generateDirichlet1D.py -i /lustre/scratch110/sanger/sd11/epitax/samplelist.tumours.txt -b /lustre/scratch110/sanger/sd11/epitax/battenberg/ -r /lustre/scratch110/sanger/sd11/epitax/dirichlet_1d/ -d /lustre/scratch110/sanger/sd11/epitax/dirichlet_input/ --no_iters 1300 --no_iters_burn_in 300
-
-
-### TODO: script that synchronises all the dp_input files per sample
-
-
-
-### Generate dp data file that lists all the samples
-
-python ~/repo/generateClonalityPipeline/generateDPDataFile.py -p dp_test -i /lustre/scratch110/sanger/sd11/dp_test/samplesheet.txt -b /lustre/scratch110/sanger/sd11/dp_test/battenberg/ -d /lustre/scratch110/sanger/sd11/dp_test/dirichlet_input/ -r /lustre/scratch110/sanger/sd11/dp_test/dirichlet/
-
-## ICGC
-### Battenberg input for ICGC
-/lustre/scratch112/sanger/cancer_external/DBGap/TCGA_phs000178.v8.p7/analysis/Battenberg_sd11/scripts/createBattenbergInputFile.sh
-
-### Battenberg ismale file for ICGC
-/lustre/scratch112/sanger/cancer_external/DBGap/TCGA_phs000178.v8.p7/analysis/Battenberg_sd11/scripts/determineMaleFemale.sh > /lustre/scratch112/sanger/cancer_external/DBGap/TCGA_phs000178.v8.p7/analysis/Battenberg_sd11/ismale.train1.txt
-
-### Battenberg pipelines
-python ~/repo/generateClonalityPipeline/generateBattenbergPipeline.py -i /lustre/scratch112/sanger/cancer_external/DBGap/TCGA_phs000178.v8.p7/analysis/Battenberg_sd11/battenberg/battenberg_input_train1.txt -r $PWD -p ~/repo/battenberg/ --ismale /lustre/scratch112/sanger/cancer_external/DBGap/TCGA_phs000178.v8.p7/analysis/Battenberg_sd11/ismale.train1.txt
-
-### Symlink allelefrequency files
-python ~/repo/generateClonalityPipeline/generateAlleleFrequencySymlinks.py -i /lustre/scratch112/sanger/cancer_external/DBGap/TCGA_phs000178.v8.p7/analysis/Battenberg_sd11/battenberg/battenberg_input_train1.txt -s /lustre/scratch112/sanger/cancer_external/DBGap/TCGA_phs000178.v8.p7/analysis/Battenberg_sd11/haplotype/G1000/ -o /lustre/scratch112/sanger/cancer_external/DBGap/TCGA_phs000178.v8.p7/analysis/Battenberg_sd11/battenberg/ --out_sample_subdir
-
-
-TODO: Write parser for ICGC file and a modifier that morphs the ICGC layout into something that fits with this layout
+## Create the run scripts
+python ~/repo/generateClonalityPipeline/generateDPrunScript.py -i $PWD/dirichlet/test.txt -d $PWD/dirichlet_input/ -r $PWD/dirichlet -p test
