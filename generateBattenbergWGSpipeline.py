@@ -44,6 +44,10 @@ def parseInputFile(filename):
         
         if not line.startswith("#"):
             words = line.strip().split("\t")
+            if not (len(words) == 6):
+                print("Expected input format:")
+                print("samplename, normal_id, normalbam, tumour_id, tumourbam, gender")
+                sys.exit(1)
             if words[SAMPLENAME_COL] in samples.keys():
                 print("Samplename "+words[SAMPLENAME_COL]+" found more than once. Make sure samplenames are unique.")
                 sys.exit(1)
