@@ -9,9 +9,9 @@ bai_file = "/lustre/scratch110/sanger/sd11/epitax/bam/PD7404a.bam.bai"
 vcf_file = "/lustre/scratch110/sanger/sd11/epitax/variants/filtered_vcf/PD7404a.filt.vcf.gz"
 run_dir = "/nfs/users/nfs_s/sd11/repo/dirichlet_preprocessing/test/PD7404a/"
 
-PIPE_DIR = "/nfs/users/nfs_s/sd11/repo/dirichlet_preprocessing_r_package"
-DPPVCF_SCRIPT = "python /nfs/users/nfs_s/sd11/repo/dirichlet_preprocessing_r_package/dpIn2vcf.py"
-DPP_SCRIPT = "python /nfs/users/nfs_s/sd11/repo/dirichlet_preprocessing_r_package/dirichlet_preprocessing.py"
+PIPE_DIR = "/nfs/users/nfs_s/sd11/repo/dirichlet_preprocessing"
+DPPVCF_SCRIPT = "python /nfs/users/nfs_s/sd11/repo/dirichlet_preprocessing/dpIn2vcf.py"
+DPP_SCRIPT = "python /nfs/users/nfs_s/sd11/repo/dirichlet_preprocessing/dirichlet_preprocessing.py"
 
 CHROMS_FAI = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/refs_icgc_pancan/genome.fa.fai"
 IGNORE_FILE = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_ignore/ignore.txt"
@@ -87,10 +87,11 @@ def createMutMutPhasingCmd(samplename, loci_file_prefix, out_file_prefix, bam_fi
 						"-r", run_dir]))
 	
 def createMutCnPhasingCmd(samplename, loci_file_prefix, baf_file, hap_info_prefix, hap_info_suffix, outfile_prefix, bam_file, bai_file, max_distance, bb_dir, run_dir, split_chroms):
-	if split_chroms:
-		filename_suffix = "${LSB_JOBINDEX}"
-	else:
-		filename_suffix = ""
+	# Running this split per chromosome always, as the internal R function cannot handle all data at once because the impute output doesn't contain chromosome info
+	#if split_chroms:
+	filename_suffix = "${LSB_JOBINDEX}"
+	#else:
+	#	filename_suffix = ""
 
 	return(merge_items([DPP_SCRIPT, "-c mutCNPhasing",
 						"-s", samplename,
@@ -145,27 +146,27 @@ def dp_preprocessing_pipeline(samplename, vcf_file, bam_file, bai_file, baf_file
 	
 	# Set output names of the various steps
 	# If the pipeline is to be run in splits per chromosome output files should be named different
+	afloci_file_postfix = "_loci.txt"
+	mut_cn_file_prefix = samplename+"_phased_mutcn_chr"
+	
 	if split_chroms:
 		loci_file_prefix = samplename+"_loci_chr"
-		afloci_file_postfix = ".loci"
+		#afloci_file_postfix = ".loci"
 		af_file_prefix = samplename+"_alleleFrequency_chr"
 		mut_mut_file_prefix = samplename+"_phasedmuts_chr"
-		mut_cn_file_prefix = samplename+"_phased_mutcn_chr"
+		
 	else:
 		loci_file_prefix = samplename+"_loci"
-		afloci_file_postfix = "_loci.txt"
 		af_file_prefix = samplename+"_alleleFrequency"
 		mut_mut_file_prefix = samplename+"_phasedmuts"
-		mut_cn_file_prefix = samplename+"_phasedmutCN"
 	
 	# Generate the loci file from vcf
 	cmd = createGenerateAFLociCmd(samplename, afloci_file_postfix, vcf_file, run_dir)
 	outf.write(generateBsubCmd("loci_"+samplename, log_dir, cmd, queue="normal", mem=1, depends=None, isArray=False) + "\n")
 	
 	# Split the loci file per chromosome
-	if split_chroms:
-		cmd = createSplitLociCmd(samplename, samplename+".loci", samplename+"_loci_chr", ".txt", fai_file, ignore_file, run_dir)
-		outf.write(generateBsubCmd("splitLoci_"+samplename, log_dir, cmd, queue="normal", mem=1, depends=["loci_"+samplename], isArray=False) + "\n")
+	cmd = createSplitLociCmd(samplename, samplename+afloci_file_postfix, samplename+"_loci_chr", ".txt", fai_file, ignore_file, run_dir)
+	outf.write(generateBsubCmd("splitLoci_"+samplename, log_dir, cmd, queue="normal", mem=1, depends=["loci_"+samplename], isArray=False) + "\n")
 	
 	# Get the allele frequencies
 	cmd = createGetAlleleFrequencyCmd(samplename, loci_file_prefix, bam_file, af_file_prefix, run_dir, split_chroms)
@@ -176,7 +177,6 @@ def dp_preprocessing_pipeline(samplename, vcf_file, bam_file, bai_file, baf_file
 	else:
 		outf.write(generateBsubCmd("allCount_"+samplename, log_dir, cmd, queue="normal", mem=1, depends=["loci_"+samplename], isArray=False) + "\n")
 
-	#TODO: dows the previous step create the same output file as this split step? 
 	if split_chroms:
 		# Merge the counts together into a single file
 		infile_list = [item[0]+str(item[1])+item[2] for item in zip([samplename+"_alleleFrequency_chr"]*no_chroms, range(1,no_chroms+1), [".txt"]*no_chroms)]
@@ -202,35 +202,36 @@ def dp_preprocessing_pipeline(samplename, vcf_file, bam_file, bai_file, baf_file
 	'''
 	########################################################### Mut CN Phasing ###########################################################
 	'''
+	# Not used because the impute output doesnt contain chromsome information and therefore the R method that does the phasing can't split that data properly
 	# hap_info_files are split per chromosome, if this is not a split run we need to concatenate these files
-	if not split_chroms:
-		# Delete the file if it already exists
-		hap_concat_file = path.joinpath(bb_dir, hap_info_prefix.strip("_chr")+hap_info_suffix)
-		if hap_concat_file.exists(): hap_concat_file.remove()
+# 	if not split_chroms:
+# 		# Delete the file if it already exists
+# 		hap_concat_file = path.joinpath(bb_dir, hap_info_prefix.strip("_chr")+hap_info_suffix)
+# 		if hap_concat_file.exists(): hap_concat_file.remove()
+# 		
+# 		# Concatenate all the split files
+# 		for chrom in range(1, no_chroms_phasing):
+# 			cmd = ["cat", path.joinpath(bb_dir, hap_info_prefix)+str(chrom)+hap_info_suffix, ">>", hap_concat_file]
+# 			_, _, _ = run_command(merge_items(cmd, sep=" "))  
+# 		
+# 		# Redefine prefix to remove the _chr bit
+# 		hap_info_prefix = hap_info_prefix.strip("_chr")
 		
-		# Concatenate all the split files
-		for chrom in range(1, no_chroms_phasing):
-			cmd = ["cat", path.joinpath(bb_dir, hap_info_prefix)+str(chrom)+hap_info_suffix, ">>", hap_concat_file]
-			_, _, _ = run_command(merge_items(cmd, sep=" "))  
-		
-		# Redefine prefix to remove the _chr bit
-		hap_info_prefix = hap_info_prefix.strip("_chr")
-		
-	cmd = createMutCnPhasingCmd(samplename, loci_file_prefix, baf_file, hap_info_prefix, hap_info_suffix, mut_cn_file_prefix, bam_file, bai_file, max_distance, bb_dir, run_dir, split_chroms)
+	cmd = createMutCnPhasingCmd(samplename, samplename+"_loci_chr", baf_file, hap_info_prefix, hap_info_suffix, mut_cn_file_prefix, bam_file, bai_file, max_distance, bb_dir, run_dir, split_chroms)
 	writeSimpleShellScript(run_dir, "RunMutCnPhasing_"+samplename+".sh", [cmd])
 	cmd = path.joinpath(run_dir, "RunMutCnPhasing_"+samplename+".sh")
-	if split_chroms:
-		# Note: We run this bit only for the autosomal chromosomes. The Y chrom can never be phased, while X is not as simple to do.
-		outf.write(generateBsubCmd("mcp_"+samplename+_arrayJobNameExt(no_chroms_phasing), log_dir, cmd, queue="normal", mem=2, depends=["splitLoci_"+samplename], isArray=True) + "\n")
-	else:
-		outf.write(generateBsubCmd("mcp_"+samplename, log_dir, cmd, queue="normal", mem=10, depends=["loci_"+samplename], isArray=False) + "\n")
+# 	if split_chroms:
+	# Note: We run this bit only for the autosomal chromosomes. The Y chrom can never be phased, while X is not as simple to do.
+	outf.write(generateBsubCmd("mcp_"+samplename+_arrayJobNameExt(no_chroms_phasing), log_dir, cmd, queue="normal", mem=2, depends=["splitLoci_"+samplename], isArray=True) + "\n")
+# 	else:
+# 		outf.write(generateBsubCmd("mcp_"+samplename, log_dir, cmd, queue="normal", mem=10, depends=["loci_"+samplename], isArray=False) + "\n")
 
 
-	if split_chroms:
-		# Note: We run this bit only for the autosomal chromosomes. The Y chrom can never be phased, while X is not as simple to do.
-		infile_list = [item[0]+str(item[1])+item[2] for item in zip([samplename+"_phased_mutcn_chr"]*no_chroms, range(1,no_aut_chroms+1), [".txt"]*no_chroms)]
-		cmd = createConcatSplitFilesCmd(samplename, infile_list, samplename+"_phasedmutCN.txt", True, run_dir)
-		outf.write(generateBsubCmd("concMCP_"+samplename, log_dir, cmd, queue="normal", mem=1, depends=["mcp_"+samplename], isArray=False) + "\n")   
+# 	if split_chroms:
+	# Note: We run this bit only for the autosomal chromosomes. The Y chrom can never be phased, while X is not as simple to do.
+	infile_list = [item[0]+str(item[1])+item[2] for item in zip([samplename+"_phased_mutcn_chr"]*no_chroms, range(1,no_aut_chroms+1), [".txt"]*no_chroms)]
+	cmd = createConcatSplitFilesCmd(samplename, infile_list, samplename+"_phasedmutCN.txt", True, run_dir)
+	outf.write(generateBsubCmd("concMCP_"+samplename, log_dir, cmd, queue="normal", mem=1, depends=["mcp_"+samplename], isArray=False) + "\n")   
 	
 	'''
 	########################################################### Generate DP input ###########################################################
@@ -239,7 +240,7 @@ def dp_preprocessing_pipeline(samplename, vcf_file, bam_file, bai_file, baf_file
 	if split_chroms:
 		outf.write(generateBsubCmd("dpIn_"+samplename, log_dir, cmd, queue="normal", mem=2, depends=["concCounts_"+samplename, "concMMP_"+samplename, "concMCP_"+samplename], isArray=False) + "\n")
 	else:
-		outf.write(generateBsubCmd("dpIn_"+samplename, log_dir, cmd, queue="normal", mem=2, depends=["allCount_"+samplename, "mmp_"+samplename, "mcp_"+samplename], isArray=False) + "\n")
+		outf.write(generateBsubCmd("dpIn_"+samplename, log_dir, cmd, queue="normal", mem=2, depends=["allCount_"+samplename, "mmp_"+samplename, "concMCP_"+samplename], isArray=False) + "\n")
 
 	'''
 	########################################################### DP input to VCF ###########################################################
