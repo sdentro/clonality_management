@@ -172,9 +172,9 @@ def generateBattenbergPipelineCGPIT(run_dir, log_dir, samplename, tumour_bam, no
 #################################################################################################################
 
 # Set some default options
-PIPE_DIR='/nfs/users/nfs_s/sd11/repo/battenberg'
+PIPE_DIR='/nfs/users/nfs_s/sd11/software/pipelines/battenberg_v1.0'
 IMPUTEINFOFILE='/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_impute/impute_info.txt'
-IMPUTE_EXE='impute_v2.2.2_x86_64_static/impute2' #/lustre/scratch110/sanger/sd11/epitax/battenberg/PD7404a/impute_v2.2.2_x86_64_static/impute2'
+IMPUTE_EXE='impute2' #/lustre/scratch110/sanger/sd11/epitax/battenberg/PD7404a/impute_v2.2.2_x86_64_static/impute2'
 PROBLEMLOCIFILE='/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_probloci/probloci.txt'
 G1000_PREFIX="/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_1000genomesloci2012/1000genomesAlleles2012_chr"
 IS_MALE=False
@@ -305,7 +305,7 @@ def main(argv):
 									min_goodness_of_fit=MIN_GOODNESS_OF_FIT, 
 									balanced_threshold=BALANCED_THRESHOLD, 
 									imputeinfofile=IMPUTEINFOFILE, 
-									impute_exe=path.joinpath(PIPE_DIR, IMPUTE_EXE), 
+									impute_exe=IMPUTE_EXE, 
 									problemlocifile=PROBLEMLOCIFILE)
 				
 
