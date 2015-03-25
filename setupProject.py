@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import sys, argparse
 from path import path
 from clonalityPipelineConfig import DIRICHLET_SUBDIR_NAME
