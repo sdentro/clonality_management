@@ -173,10 +173,10 @@ def generateBattenbergPipelineCGPIT(run_dir, log_dir, samplename, tumour_bam, no
 
 # Set some default options
 PIPE_DIR='/nfs/users/nfs_s/sd11/software/pipelines/battenberg_v1.0'
-IMPUTEINFOFILE='/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_impute/impute_info.txt'
+IMPUTEINFOFILE='/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_impute_v3/impute_info.txt'
 IMPUTE_EXE='impute2' #/lustre/scratch110/sanger/sd11/epitax/battenberg/PD7404a/impute_v2.2.2_x86_64_static/impute2'
 PROBLEMLOCIFILE='/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_probloci/probloci.txt'
-G1000_PREFIX="/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_1000genomesloci2012/1000genomesAlleles2012_chr"
+G1000_PREFIX="/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_1000genomesloci2012_v3/1000genomesAlleles2012_chr"
 IS_MALE=False
 PLATFORM_GAMMA=1
 PHASING_GAMMA=1

@@ -5,16 +5,17 @@ from util import merge_items
 
 class SampleSheet(object):
     
-    def __init__(self, sample2normals, sample2tumours, sample2sex, sample2normal_bam, sample2tumour_bam, sample2bb_dir, sample2variants, tumour_normal_pairs_id, tumour_normal_pairs_bam, tumour_bam2tumour_id):
+    def __init__(self, sample2normals, sample2tumours, sample2sex, sample2normal_bam, sample2tumour_bam, sample2bb_dir, sample2variants, tumour_normal_pairs_id, tumour_normal_pairs_bam, tumour_bam2tumour_id, normal_bam2normal_id):
         assert len(sample2sex.keys()) == len(sample2normals.keys()) and len(sample2sex.keys()) == len(sample2tumours.keys()) and \
             len(sample2sex.keys()) == len(sample2normal_bam.keys()) and len(sample2sex.keys()) == len(sample2tumour_bam.keys()) and \
             len(sample2sex.keys()) == len(sample2bb_dir.keys()) and len(sample2sex.keys()) == len(sample2variants.keys()) and \
-            len(sample2sex.keys()) == len(tumour_normal_pairs_bam.keys()) and len(sample2sex.keys()) == len(tumour_normal_pairs_id.keys()), "SampleSheet: Received mappings do not contain all samples"
+            len(sample2sex.keys()) == len(tumour_normal_pairs_bam.keys()) and len(sample2sex.keys()) == len(tumour_normal_pairs_id.keys()) and \
+            len(sample2sex.keys()) == len(normal_bam2normal_id.keys()), "SampleSheet: Received mappings do not contain all samples"
         for samplename in sample2sex.keys():
             assert samplename in sample2normals.keys() and samplename in sample2tumours.keys() and samplename in sample2normal_bam.keys() and \
             samplename in sample2tumour_bam.keys() and samplename in sample2bb_dir.keys() and samplename in sample2variants.keys() and \
             samplename in tumour_normal_pairs_id.keys() and samplename in tumour_normal_pairs_bam.keys(), "SampleSheet: Received mappings do not contain all samples"
-        
+
         self._sample2normals = sample2normals
         self._sample2tumours = sample2tumours
         self._sample2sex = sample2sex
@@ -25,6 +26,7 @@ class SampleSheet(object):
         self._tumour_normal_pairs_id = tumour_normal_pairs_id
         self._tumour_normal_pairs_bam = tumour_normal_pairs_bam
         self._tumour_bam2tumour_id = tumour_bam2tumour_id
+        self._normal_bam2normal_id = normal_bam2normal_id
 
     def getSamplenames(self):
         return self._sample2tumours.keys()
@@ -75,7 +77,7 @@ class SampleSheet(object):
         return(self._tumour_bam2tumour_id[bam_file])
     
     def getIdByNormalBam(self, bam_file):
-        return(self._normal_bam2tumour_id[bam_file])
+        return(self._normal_bam2normal_id[bam_file])
     
     def getBbDirByTumourId(self, sample, tumourid):
         for s in self.getSamplenames():
@@ -107,6 +109,7 @@ def read_sample_infile(infile):
     tumour_normal_pairs_id = dict()
     tumour_normal_pairs_bam = dict()
     tumour_bam2tumour_id = dict()
+    normal_bam2normal_id = dict()
     
     for line in f:
         l = line.strip()
@@ -123,7 +126,7 @@ def read_sample_infile(infile):
             normal_ids[c1] = normal_ids[c1] + c4
             normal_bam[c1] = normal_bam[c1] + c5
             bb_dir[c1] = bb_dir[c1] + (c2, c6)
-            sex[c1] = sex[c1] + c7
+            sex[c1] = c7
             variants[c1] = variants[c1] + c8
             tumour_normal_pairs_id[c1] = tumour_normal_pairs_id[c1] + (c2, c4)
             tumour_normal_pairs_bam[c1] = tumour_normal_pairs_bam[c1] + (c3, c5)
@@ -134,16 +137,17 @@ def read_sample_infile(infile):
             normal_ids[c1] = [c4]
             normal_bam[c1] = [c5]
             bb_dir[c1] = [(c2, c6)]
-            sex[c1] = [c7]
+            sex[c1] = c7
             variants[c1] = [c8]
             tumour_normal_pairs_id[c1] = [(c2, c4)]
             tumour_normal_pairs_bam[c1] = [(c3, c5)]
             
         tumour_bam2tumour_id[c3] = c2
+        normal_bam2normal_id[c5] = c4
     
     f.close()
     
-    ss = SampleSheet(normal_ids, tumour_ids, sex, normal_bam, tumour_bam, bb_dir, variants, tumour_normal_pairs_id, tumour_normal_pairs_bam, tumour_bam2tumour_id)
+    ss = SampleSheet(normal_ids, tumour_ids, sex, normal_bam, tumour_bam, bb_dir, variants, tumour_normal_pairs_id, tumour_normal_pairs_bam, tumour_bam2tumour_id, normal_bam2normal_id)
         
     return ss
 
