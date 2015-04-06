@@ -23,13 +23,13 @@ Pipeline BB setup - WGS
 #################################################################################################################
 '''
 PLATFORM_GAMMA_WGS=1
+MIN_COUNT=10 # TODO: should this be removed from SNP6?
 
 '''
 #################################################################################################################
 Pipeline BB setup - SNP6
 #################################################################################################################
 '''
-MIN_COUNT=1 # TODO: should this not be moved to WGS?
 USE_LOCI_FILE="NA"
 HETEROZYGOUS_FILTER="NA"
 FILL_IN_SNPS=0
@@ -271,7 +271,7 @@ def main(argv):
 	parser.add_argument("--problemlocifile", help="File containing problem loci")
 	
 	# SNP6 options	
-	parser.add_argument("--min_count", type=int, help="Minimum read count") # TODO: shouldn't this be added to the WGS version??
+	parser.add_argument("--min_count", type=int, help="Minimum read count") # TODO: shouldn't this be added to the WGS version?? => Added to WGS, remove from SNP6 now?
 	parser.add_argument("--fill_in_snps", type=int, choices=[0,1], help="Fill in SNPs, should be either 0 or 1") # TODO: still used?
 	parser.add_argument("--heterozygous_filter", type=str, help="Heterozygous filter to be used") # TODO: still used?
 	parser.add_argument("--use_tumour_snps", type=int, choices=[0,1], help="Use tumour SNPs, either 0 or 1") # TODO: still used?

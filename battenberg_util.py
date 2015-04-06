@@ -171,6 +171,7 @@ class bb_pipeline_config(object):
         fout.write("PROBLEMLOCI="+self._prob_loci+"\n")
         fout.write("G1000_PREFIX="+self._g1000_loci_dir+"\n")
         fout.write("G1000_PREFIX_AC="+self._g1000_loci_dir+"\n") # TODO: This option should be removed??
+	fout.write("MIN_NORMAL_DEPTH="+str(self._min_count)+"\n")
     
         fout.close()
         
