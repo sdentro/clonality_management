@@ -1,4 +1,4 @@
-import os, stat
+import os, stat, re
 import numpy as np
 from path import path
 from util import merge_items
@@ -151,6 +151,80 @@ def read_sample_infile(infile):
         
     return ss
 
+def read_basic_sample_infile(infile, bb_run_dir):
+    '''
+    Reads in a table: samplename\ttumour_bam\tnormal_bam\tgender
+    Headers should be commented out with a #
+    
+    It checks whether a sample name is already known, if that is the case additional tumour ids and bams are 
+    saved, normals not, bb_dirs not
+    
+    Creates and returns a SampleSheet object.
+    '''
+    f = open(infile, 'r')
+    tumour_ids = dict()
+    tumour_bam = dict()
+    normal_ids = dict()
+    normal_bam = dict()
+    bb_dir = dict()
+    sex = dict()
+    variants = dict()
+    tumour_normal_pairs_id = dict()
+    tumour_normal_pairs_bam = dict()
+    tumour_bam2tumour_id = dict()
+    normal_bam2normal_id = dict()
+
+    for line in f:
+        l = line.strip()
+        if l.startswith('#'): continue
+        
+        # Only four of the regular columns available
+        c1, c3, c5, c7 = l.split("\t")
+        if (c3.endswith(".bam")):
+            c2 = re.sub("\.bam", "", path(c3).basename())
+            c4 = re.sub("\.bam", "", path(c5).basename())
+        elif (c3.endswith(".CEL")):
+            c2 = re.sub("\.CEL", "", path(c3).basename())
+            c4 = re.sub("\.CEL", "", path(c5).basename())
+        else:
+            c2 = path(c3).basename()
+            c4 = path(c5).basename()
+        c6 = path.joinpath(bb_run_dir, c1)
+        c8 = "placeholder"
+        
+        if c1 in normal_ids.keys():
+            # Case add new tumour/normal to existing sample
+            #print("Item "+c1+" found more than once in input file")
+            #sys.exit(1)
+            tumour_ids[c1] = tumour_ids[c1] + c2
+            tumour_bam[c1] = tumour_bam[c1] + c3
+            normal_ids[c1] = normal_ids[c1] + c4
+            normal_bam[c1] = normal_bam[c1] + c5
+            bb_dir[c1] = bb_dir[c1] + (c2, c6)
+            sex[c1] = c7
+            variants[c1] = variants[c1] + c8
+            tumour_normal_pairs_id[c1] = tumour_normal_pairs_id[c1] + (c2, c4)
+            tumour_normal_pairs_bam[c1] = tumour_normal_pairs_bam[c1] + (c3, c5)
+        else:
+            # Case new sample
+            tumour_ids[c1] = [c2]
+            tumour_bam[c1] = [c3]
+            normal_ids[c1] = [c4]
+            normal_bam[c1] = [c5]
+            bb_dir[c1] = [(c2, c6)]
+            sex[c1] = c7
+            variants[c1] = [c8]
+            tumour_normal_pairs_id[c1] = [(c2, c4)]
+            tumour_normal_pairs_bam[c1] = [(c3, c5)]
+            
+        tumour_bam2tumour_id[c3] = c2
+        normal_bam2normal_id[c5] = c4
+        
+    f.close()
+    
+    ss = SampleSheet(normal_ids, tumour_ids, sex, normal_bam, tumour_bam, bb_dir, variants, tumour_normal_pairs_id, tumour_normal_pairs_bam, tumour_bam2tumour_id, normal_bam2normal_id)
+        
+    return ss
 
 def generateBsubCmd(jobname, logdir, cmd, queue="normal", mem=1, depends=None, isArray=False, threads=None):
     '''
