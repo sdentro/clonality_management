@@ -66,7 +66,7 @@ def createDumpCountsSangerCmd(samplename, vcf_file, run_dir):
 						"-s", samplename,
 						"-v", vcf_file,
 						"-r", run_dir,
-						"-o", path.joinpath(run_dir, samplename+"_alleleFrequency.txt")]))
+						"-o", samplename+"_alleleFrequency.txt"]))
 	
 def createConcatSplitFilesCmd(samplename, infile_list, outfile, haveHeader, run_dir):
 	cmd = [DPP_SCRIPT, "-c concatSplitFiles",
