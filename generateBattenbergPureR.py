@@ -7,11 +7,14 @@ Script to generate a pure R BB pipeline for a table of samples
 import os, stat, sys, argparse
 from path import path
 
-BB_PURE_R_SNP6 = "/nfs/users/nfs_s/sd11/repo/Battenberg/inst/example/battenberg_snp6.R"
+#BB_PURE_R_SNP6 = "/nfs/users/nfs_s/sd11/repo/Battenberg/inst/example/battenberg_snp6.R"
+BB_PURE_R_SNP6 = "/lustre/scratch112/sanger/cancer_external/DBGap/TCGA_phs000178.v8.p7/TCGA_pancan/pipelines/battenberg/battenberg_snp6_tcga_pancan.R"
 BB_PURE_R_WGS = ""
 
+QUEUE = "basement"
+
 NUM_THREADS = 1
-MEMORY = 4000
+MEMORY = 20000
 
 def generateBattenbergPureR(sample, normal, tumour, run_dir_sample, log_dir, pipe_script):
     '''
@@ -25,6 +28,7 @@ def generateBattenbergPureR(sample, normal, tumour, run_dir_sample, log_dir, pip
     outf.write("TUMOURCEL="+tumour+"\n")
     outf.write("RUN_DIR="+run_dir_sample+"\n")
     outf.write("bsub -n "+str(NUM_THREADS) + \
+	       " -q "+QUEUE + \
                " -R\"select[mem>"+str(MEMORY)+"] rusage[mem="+str(MEMORY)+"] span[hosts=1]\" -M"+str(MEMORY)+" " + \
                " -o "+path.joinpath(log_dir, sample+".%J.out") + " -J"+sample + \
                " \"R CMD BATCH '--no-restore-data --no-save --args "+sample+" "+normal+" "+tumour+" "+run_dir_sample+" "+str(NUM_THREADS)+"' " + \
