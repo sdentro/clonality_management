@@ -24,7 +24,10 @@ def generateDPDataFile(proj_name, infile, dp_in_dir, run_dir):
                 print(dp_in_file)
                 print("Found different than expected dp input matches for "+tumour)
                 continue
-            outfile.write(sample+"\t"+tumour+"\t"+path(dp_in_file[0]).basename()+"\t"+tumour2purity[tumour]+"\n")
+	    if tumour in tumour2purity.keys():
+            	outfile.write(sample+"\t"+tumour+"\t"+path(dp_in_file[0]).basename()+"\t"+tumour2purity[tumour]+"\n")
+	    else:
+		print("Did not find purity estimate for "+tumour)
     outfile.close()
         
 def getTumourPurity(ss):
