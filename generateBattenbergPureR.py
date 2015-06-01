@@ -14,7 +14,7 @@ BB_PURE_R_WGS = ""
 QUEUE = "basement"
 
 NUM_THREADS = 1
-MEMORY = 20000
+MEMORY = 10000
 
 def generateBattenbergPureR(sample, normal, tumour, run_dir_sample, log_dir, pipe_script):
     '''
