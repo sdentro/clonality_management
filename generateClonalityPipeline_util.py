@@ -6,11 +6,11 @@ from util import merge_items
 class SampleSheet(object):
     
     def __init__(self, sample2normals, sample2tumours, sample2sex, sample2normal_bam, sample2tumour_bam, sample2bb_dir, sample2variants, tumour_normal_pairs_id, tumour_normal_pairs_bam, tumour_bam2tumour_id, normal_bam2normal_id):
-        assert len(sample2sex.keys()) == len(sample2normals.keys()) and len(sample2sex.keys()) == len(sample2tumours.keys()) and \
-            len(sample2sex.keys()) == len(sample2normal_bam.keys()) and len(sample2sex.keys()) == len(sample2tumour_bam.keys()) and \
-            len(sample2sex.keys()) == len(sample2bb_dir.keys()) and len(sample2sex.keys()) == len(sample2variants.keys()) and \
-            len(sample2sex.keys()) == len(tumour_normal_pairs_bam.keys()) and len(sample2sex.keys()) == len(tumour_normal_pairs_id.keys()) and \
-            len(sample2sex.keys()) == len(normal_bam2normal_id.keys()), "SampleSheet: Received mappings do not contain all samples"
+       # assert len(sample2sex.keys()) == len(sample2normals.keys()) and len(sample2sex.keys()) == len(sample2tumours.keys()) and \
+       #     len(sample2sex.keys()) == len(sample2normal_bam.keys()) and len(sample2sex.keys()) == len(sample2tumour_bam.keys()) and \
+       #     len(sample2sex.keys()) == len(sample2bb_dir.keys()) and len(sample2sex.keys()) == len(sample2variants.keys()) and \
+       #     len(sample2sex.keys()) == len(tumour_normal_pairs_bam.keys()) and len(sample2sex.keys()) == len(tumour_normal_pairs_id.keys()) and \
+       #     len(sample2sex.keys()) == len(normal_bam2normal_id.keys()), "SampleSheet: Received mappings do not contain all samples"
         for samplename in sample2sex.keys():
             assert samplename in sample2normals.keys() and samplename in sample2tumours.keys() and samplename in sample2normal_bam.keys() and \
             samplename in sample2tumour_bam.keys() and samplename in sample2bb_dir.keys() and samplename in sample2variants.keys() and \
