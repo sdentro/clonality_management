@@ -65,6 +65,7 @@ BALANCED_THRESHOLD=0.51
 IMPUTE_EXE='impute2' #/lustre/scratch110/sanger/sd11/epitax/battenberg/PD7404a/impute_v2.2.2_x86_64_static/impute2'
 IMPUTEINFOFILE='/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_impute_v3/impute_info.txt'
 G1000_PREFIX="/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_1000genomesloci2012_v3/1000genomesAlleles2012_chr"
+G1000_ALLELES_PREFIX="/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_1000genomesloci2012_v3/1000genomesloci2012_chr"
 PROBLEMLOCIFILE='/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_probloci/probloci.txt'
 
 '''
@@ -72,25 +73,37 @@ PROBLEMLOCIFILE='/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg
 Versions
 #################################################################################################################
 '''
-PIPE_DIR_WGS_1_0='/nfs/users/nfs_s/sd11/software/pipelines/battenberg_v1.0'
+PIPE_BASE_DIR="/nfs/users/nfs_s/sd11/software/pipelines/"
+
+PIPE_DIR_WGS_1_0=PIPE_BASE_DIR+'battenberg_v1.0'
 PIPE_DIR_WGS_1_0_EXE=path.joinpath(PIPE_DIR_WGS_1_0, "RunCommands.sh")
 PIPE_DIR_WGS_1_0_RERUN_EXE=path.joinpath(PIPE_DIR_WGS_1_0, "RunCommandsRerunFitCopynumber.sh")
 PIPE_DIR_WGS_1_0_RERUN_MANUAL_EXE=path.joinpath(PIPE_DIR_WGS_1_0, "RunCommandsRerunFitCopynumberManual.sh")
+
+PIPE_DIR_WGS_2_0_0=PIPE_BASE_DIR+"battenberg_v2.0.0/"
+PIPE_DIR_WGS_2_0_0_EXE=path.joinpath(PIPE_DIR_WGS_2_0_0, "RunCommands.sh")
+PIPE_DIR_WGS_2_0_0_RERUN_EXE=path.joinpath(PIPE_DIR_WGS_2_0_0, "RunCommandsRerunFitCopynumber.sh")
+PIPE_DIR_WGS_2_0_0_RERUN_MANUAL_EXE=path.joinpath(PIPE_DIR_WGS_2_0_0, "RunCommandsRerunFitCopynumberManual.sh")
 
 PIPE_DIR_WGS_DEV="/nfs/users/nfs_s/sd11/repo/battenberg"
 PIPE_DIR_WGS_DEV_EXE=path.joinpath(PIPE_DIR_WGS_DEV, "RunCommands.sh")
 PIPE_DIR_WGS_DEV_RERUN_EXE=path.joinpath(PIPE_DIR_WGS_DEV, "RunCommandsRerunFitCopynumber.sh")
 PIPE_DIR_WGS_DEV_RERUN_MANUAL_EXE=path.joinpath(PIPE_DIR_WGS_DEV, "RunCommandsRerunFitCopynumberManual.sh")
 
-PIPE_DIR_SNP6_1_0='/nfs/users/nfs_s/sd11/software/pipelines/battenberg_snp6_v1.0'
+PIPE_DIR_SNP6_1_0=PIPE_BASE_DIR+'battenberg_snp6_v1.0'
 PIPE_DIR_SNP6_1_0_EXE=path.joinpath(PIPE_DIR_SNP6_1_0, "RunCommands2014farm3_SNP6.sh")
 PIPE_DIR_SNP6_1_0_RERUN_EXE=path.joinpath(PIPE_DIR_SNP6_1_0, "RunCommandsRerunFitCopynumber.sh")
 PIPE_DIR_SNP6_1_0_RERUN_MANUAL_EXE=path.joinpath(PIPE_DIR_SNP6_1_0, "RunCommandsRerunFitCopynumberManual.sh")
 
+PIPE_DIR_SNP6_2_0_0=PIPE_BASE_DIR+"battenberg_v2.0.0/"
+PIPE_DIR_SNP6_2_0_0_EXE=path.joinpath(PIPE_DIR_SNP6_2_0_0, "Battenberg_SNP6_LSF.sh")
+PIPE_DIR_SNP6_2_0_0_RERUN_EXE=path.joinpath(PIPE_DIR_SNP6_2_0_0, "RunCommandsRerunFitCopynumber.sh")
+PIPE_DIR_SNP6_2_0_0_RERUN_MANUAL_EXE=path.joinpath(PIPE_DIR_SNP6_2_0_0, "RunCommandsRerunFitCopynumberManual.sh")
+
 PIPE_DIR_SNP6_DEV="/nfs/users/nfs_s/sd11/repo/battenberg"
-PIPE_DIR_WGS_DEV_EXE=path.joinpath(PIPE_DIR_WGS_DEV, "RunCommands.sh")
-PIPE_DIR_WGS_DEV_RERUN_EXE=path.joinpath(PIPE_DIR_WGS_DEV, "RunCommandsRerunFitCopynumber.sh")
-PIPE_DIR_WGS_DEV_RERUN_MANUAL_EXE=path.joinpath(PIPE_DIR_WGS_DEV, "RunCommandsRerunFitCopynumberManual.sh")
+PIPE_DIR_SNP6_DEV_EXE=path.joinpath(PIPE_DIR_WGS_DEV, "Battenberg_SNP6_LSF.sh")
+PIPE_DIR_SNP6_DEV_RERUN_EXE=path.joinpath(PIPE_DIR_WGS_DEV, "RunCommandsRerunFitCopynumber.sh")
+PIPE_DIR_SNP6_DEV_RERUN_MANUAL_EXE=path.joinpath(PIPE_DIR_WGS_DEV, "RunCommandsRerunFitCopynumberManual.sh")
 
 '''
 #################################################################################################################
@@ -258,7 +271,8 @@ def main(argv):
 	# General options
 	parser.add_argument("--imputeinfofile", help='Path to impute info file')
 	parser.add_argument("--impute_exe", help='Path to impute exe')
-	parser.add_argument("--g1000_prefix", help='Prefix to 1000 Genomes loci reference files')
+	parser.add_argument("--g1000_prefix_alleles", help='Prefix to 1000 Genomes alleles reference files')
+	parser.add_argument("--g1000_prefix_loci", help='Prefix to 1000 Genomes loci reference files')
 	parser.add_argument("--phasing_gamma", help="Phasing gamma parameter")
 	parser.add_argument("--segmentation_gamma", help="Phasing segmentation parameter")
 	parser.add_argument("--clonality_dist_metric", help="Type of distance metric used when fitting the clonal copy number profile")
@@ -293,8 +307,8 @@ def main(argv):
 	parser.add_argument("--protocol", type=str, choices=["WGS"], help="Sequencing protocol used")
 	parser.add_argument("--ignore_file", type=str, help="File with chromosomes to ignore")
 	
-	parser.set_defaults(ss=False, t=1, version="1.0", type="wgs", \
-					imputeinfofile=IMPUTEINFOFILE, impute_exe=IMPUTE_EXE, g1000_prefix=G1000_PREFIX, phasing_gamma=PHASING_GAMMA, \
+	parser.set_defaults(ss=False, t=1, version="2.0.0", type="wgs", \
+					imputeinfofile=IMPUTEINFOFILE, impute_exe=IMPUTE_EXE, g1000_prefix_alleles=G1000_PREFIX, phasing_gamma=PHASING_GAMMA, \
 					segmentation_gamma=SEGMENTATION_GAMMA, clonality_dist_metric=CLONALITY_DIST_METRIC, ascat_dist_metric=ASCAT_DIST_METRIC, \
 					min_ploidy=MIN_PLOIDY, max_ploidy=MAX_PLOIDY, min_rho=MIN_RHO, min_goodness_of_fit=MIN_GOODNESS_OF_FIT, \
 					balanced_threshold=BALANCED_THRESHOLD, problemlocifile=PROBLEMLOCIFILE, min_count=MIN_COUNT, fill_in_snps=FILL_IN_SNPS, \
@@ -302,7 +316,7 @@ def main(argv):
 					hom_caveman_snps=HOMOZYGOUS_CAVEMAN_CALLS_FILE, use_loci_file=USE_LOCI_FILE, snppos=SNPPOS, gc_snp6=GC_SNP6, anno=ANNO_FILE, \
 					snp6_ref_info_file=SNP6_REF_INFO_FILE, birdseed_report_file=BIRDSEED_REPORT_FILE, apt_probeset_geno_exe=APT_PROBESET_GENOTYPE_EXE, \
 					apt_probeset_summ_exe=APT_PROBESET_SUMMARIZE_EXE, norm_geno_clust_exe=NORM_GENO_CLUST_EXE, genome_index=GENOME_INDEX, \
-					protocol=PROTOCOL, ignore_file=IGNORE_FILE)
+					protocol=PROTOCOL, ignore_file=IGNORE_FILE, g1000_prefix_loci=G1000_ALLELES_PREFIX)
 	args = parser.parse_args()
 	
 	'''
@@ -330,9 +344,12 @@ def main(argv):
 			pipe_rerun_exe = PIPE_DIR_WGS_1_0_RERUN_EXE
 			pipe_rerun_manual_exe = PIPE_DIR_WGS_1_0_RERUN_MANUAL_EXE
 		elif (args.version=="1.1"):
-			pass
-		elif (args.version=="2.0"):
-			pass
+			print("not implemented")
+		elif (args.version=="2.0.0"):
+			pipe_dir = PIPE_DIR_WGS_2_0_0
+			pipe_exe = PIPE_DIR_WGS_2_0_0_EXE
+			pipe_rerun_exe = PIPE_DIR_WGS_2_0_0_RERUN_EXE
+			pipe_rerun_manual_exe = PIPE_DIR_WGS_2_0_0_RERUN_MANUAL_EXE
 		elif (args.version=="dev"):
 			pipe_dir = PIPE_DIR_WGS_DEV
 			pipe_exe = PIPE_DIR_WGS_DEV_EXE
@@ -353,10 +370,16 @@ def main(argv):
 			pipe_exe = PIPE_DIR_SNP6_1_0_EXE
 			pipe_rerun_exe = PIPE_DIR_SNP6_1_0_RERUN_EXE
 			pipe_rerun_manual_exe = PIPE_DIR_SNP6_1_0_RERUN_MANUAL_EXE
-		elif (args.version=="2.0"):
-			pass
+		elif (args.version=="2.0.0"):
+			pipe_dir = PIPE_DIR_SNP6_2_0_0
+			pipe_exe = PIPE_DIR_SNP6_2_0_0_EXE
+			pipe_rerun_exe = PIPE_DIR_SNP6_2_0_0_RERUN_EXE
+			pipe_rerun_manual_exe = PIPE_DIR_SNP6_2_0_0_RERUN_MANUAL_EXE
 		elif (args.version=="dev"):
-			pass
+			pipe_dir = PIPE_DIR_SNP6_DEV
+			pipe_exe = PIPE_DIR_SNP6_DEV_EXE
+			pipe_rerun_exe = PIPE_DIR_SNP6_DEV_RERUN_EXE
+			pipe_rerun_manual_exe = PIPE_DIR_SNP6_DEV_RERUN_MANUAL_EXE
 		else:
 			print("Unsupported BB SNP6 version supplied")
 			sys.exit(1)
@@ -394,7 +417,7 @@ def main(argv):
 			bb_conf = bb_pipeline_config(pipe_type=args.type, pipe_version=args.version, pipe_dir=pipe_dir, \
 									tumour_file=tb, normal_file=nb, run_dir=run_dir, log_dir=log_dir, samplename=sample, gender=ss.getSex(sample), \
 									tumour_id=tumourid, normal_id=normalid, impute_info=args.imputeinfofile, impute_exe=args.impute_exe, \
-									g1000_loci_dir=args.g1000_prefix, platform_gamma=platform_gamma, phasing_gamma=args.phasing_gamma, \
+									g1000_loci_dir=args.g1000_prefix_loci, platform_gamma=platform_gamma, phasing_gamma=args.phasing_gamma, \
 									segmentation_gamma=args.segmentation_gamma, clonality_dist_metric=args.clonality_dist_metric, min_count=args.min_count, \
 									ascat_dist_metric=args.ascat_dist_metric, min_ploidy=args.min_ploidy, max_ploidy=args.max_ploidy, \
 									min_rho=args.min_rho, min_goodness_of_fit=args.min_goodness_of_fit, balanced_threshold=args.balanced_threshold, \
@@ -404,7 +427,7 @@ def main(argv):
 									birdseed_report_file=args.birdseed_report_file, apt_probeset_geno_exe=args.apt_probeset_geno_exe, \
 									apt_probeset_summ_exe=args.apt_probeset_summ_exe, norm_geno_clust_exe=args.norm_geno_clust_exe, \
 									fill_in_snps=args.fill_in_snps, threads=args.t, genome_index=args.genome_index, protocol=args.protocol, \
-									ignore_file=args.ignore_file)
+									ignore_file=args.ignore_file, g1000_alleles_dir=args.g1000_prefix_alleles)
 			
 			'''
 			#######################################################################

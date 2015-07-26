@@ -6,7 +6,7 @@ class bb_pipeline_config(object):
     
     def __init__(self, pipe_type, pipe_version, \
                  tumour_file, normal_file, run_dir, log_dir, samplename, tumour_id=None, normal_id=None, \
-                 gender=None, genome_index=None, impute_info=None, g1000_loci_dir=None, \
+                 gender=None, genome_index=None, impute_info=None, g1000_loci_dir=None, g1000_alleles_dir=None, \
                  prob_loci_file=None, ignore_file=None, protocol=None, threads=None, pipe_dir=None, \
                  platform_gamma=None, phasing_gamma=None, segmentation_gamma=None, clonality_dist_metric=None, \
                  ascat_dist_metric=None, min_ploidy=None, max_ploidy=None, min_rho=None, min_goodness_of_fit=None, \
@@ -34,6 +34,7 @@ class bb_pipeline_config(object):
         self._impute_exe = impute_exe
         self._impute_info = impute_info
         self._g1000_loci_dir = g1000_loci_dir
+	self._g1000_alleles_dir = g1000_alleles_dir
         self._prob_loci = prob_loci_file
         
         self._platform_gamma = platform_gamma
@@ -169,7 +170,7 @@ class bb_pipeline_config(object):
         self._generateSharedParams_general(fout)
         
         fout.write("PROBLEMLOCI="+self._prob_loci+"\n")
-        fout.write("G1000_PREFIX="+self._g1000_loci_dir+"\n")
+        fout.write("G1000_PREFIX="+self._g1000_alleles_dir+"\n")
         fout.write("G1000_PREFIX_AC="+self._g1000_loci_dir+"\n") # TODO: This option should be removed??
 	fout.write("MIN_NORMAL_DEPTH="+str(self._min_count)+"\n")
     
