@@ -121,15 +121,15 @@ def read_sample_infile(infile):
             # Case add new tumour/normal to existing sample
             #print("Item "+c1+" found more than once in input file")
             #sys.exit(1)
-            tumour_ids[c1] = tumour_ids[c1] + c2
-            tumour_bam[c1] = tumour_bam[c1] + c3
-            normal_ids[c1] = normal_ids[c1] + c4
-            normal_bam[c1] = normal_bam[c1] + c5
-            bb_dir[c1] = bb_dir[c1] + (c2, c6)
+            tumour_ids[c1] = tumour_ids[c1] + [c2]
+            tumour_bam[c1] = tumour_bam[c1] + [c3]
+            normal_ids[c1] = normal_ids[c1] + [c4]
+            normal_bam[c1] = normal_bam[c1] + [c5]
+            bb_dir[c1] = bb_dir[c1] + [(c2, c6)]
             sex[c1] = c7
-            variants[c1] = variants[c1] + c8
-            tumour_normal_pairs_id[c1] = tumour_normal_pairs_id[c1] + (c2, c4)
-            tumour_normal_pairs_bam[c1] = tumour_normal_pairs_bam[c1] + (c3, c5)
+            variants[c1] = variants[c1] + [c8]
+            tumour_normal_pairs_id[c1] = tumour_normal_pairs_id[c1] + [(c2, c4)]
+            tumour_normal_pairs_bam[c1] = tumour_normal_pairs_bam[c1] + [(c3, c5)]
         else:
             # Case new sample
             tumour_ids[c1] = [c2]
