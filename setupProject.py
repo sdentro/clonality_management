@@ -17,6 +17,8 @@ def setupProject(basedir):
     path.joinpath(basedir,'dirichlet_input','logs').makedirs()
     path.joinpath(basedir,DIRICHLET_SUBDIR_NAME,'logs').makedirs()
     path.joinpath(basedir,'qc').makedirs()
+    path.joinpath(basedir,'scripts').makedirs()
+    path.joinpath(basedir,'cel').makedirs()
 
     print("")
     print("Now the following must be done:")
