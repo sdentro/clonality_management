@@ -24,7 +24,10 @@ def generateDPDataFile(proj_name, infile, dp_in_dir, run_dir):
                 print(dp_in_file)
                 print("Found different than expected dp input matches for "+tumour)
                 continue
-            outfile.write(sample+"\t"+tumour+"\t"+path(dp_in_file[0]).basename()+"\t"+tumour2purity[tumour]+"\n")
+	    if tumour in tumour2purity.keys():
+            	outfile.write(sample+"\t"+tumour+"\t"+path(dp_in_file[0]).basename()+"\t"+tumour2purity[tumour]+"\n")
+	    else:
+		print("Did not find purity estimate for "+tumour)
     outfile.close()
         
 def getTumourPurity(ss):
@@ -38,8 +41,7 @@ def getTumourPurity(ss):
         # For every tumour_id available for that sample
         for tumour_id in ss.getTumours(sample):
             bb_dir = ss.getBbDirByTumourId(sample, tumour_id)
-            
-            listing = np.array(path(bb_dir).listdir(RHO_AND_PSI_REGEX))
+            listing = np.array(path(bb_dir).listdir(tumour_id+RHO_AND_PSI_REGEX))
             
             if (len(listing) == 1):
                 rho_and_psi = listing[np.array([tumour_id in filename for filename in listing])] # Should yield only a single file

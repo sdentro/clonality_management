@@ -13,7 +13,8 @@ run_dir = "/nfs/users/nfs_s/sd11/repo/dirichlet_preprocessing/test/PD7404a/"
 
 PIPE_DIR = "/nfs/users/nfs_s/sd11/software/pipelines/dirichlet_preprocessing_v1.0"
 DPPVCF_SCRIPT = "python /nfs/users/nfs_s/sd11/software/pipelines/dirichlet_preprocessing_v1.0/dpIn2vcf.py"
-DPP_SCRIPT = "python /nfs/users/nfs_s/sd11/software/pipelines/dirichlet_preprocessing_v1.0/dirichlet_preprocessing.py"
+DPP_SCRIPT = "python /nfs/users/nfs_s/sd11/repo/dirichlet_preprocessing/dirichlet_preprocessing.py"
+#DPP_SCRIPT = "python /nfs/users/nfs_s/sd11/software/pipelines/dirichlet_preprocessing_v1.0/dirichlet_preprocessing.py"
 
 CHROMS_FAI = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/refs_icgc_pancan/genome.fa.fai"
 IGNORE_FILE = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_ignore/ignore.txt"
@@ -59,6 +60,13 @@ def createGetAlleleFrequencyCmd(samplename, loci_file_prefix, bam_file, out_file
 						"--loci", loci_file_prefix+filename_suffix,
 						"-o", out_file_prefix+filename_suffix,
 						"-r", run_dir]))
+	
+def createDumpCountsSangerCmd(samplename, vcf_file, run_dir):
+	return(merge_items([DPP_SCRIPT, "-c dumpCountsSanger",
+						"-s", samplename,
+						"-v", vcf_file,
+						"-r", run_dir,
+						"-o", samplename+"_alleleFrequency.txt"]))
 	
 def createConcatSplitFilesCmd(samplename, infile_list, outfile, haveHeader, run_dir):
 	cmd = [DPP_SCRIPT, "-c concatSplitFiles",
@@ -258,6 +266,53 @@ def dp_preprocessing_pipeline(samplename, vcf_file, bam_file, bai_file, baf_file
 	
 	return(runscript)
 	
+	
+def dp_preprocessing_icgc_pipeline(samplename, vcf_file, baf_file, hap_info_prefix, hap_info_suffix, subclone_file, rho_psi_file, fai_file, ignore_file, gender, bb_dir, log_dir, run_dir):
+	'''
+	Simple pipeline for ICGC that runs from allele counts in a VCF file. It does not do any mutation phasing.	
+	'''
+	# Setup a pipeline script for this sample
+	runscript = path.joinpath(run_dir, "RunCommands_"+samplename+".sh")
+	outf = open(runscript, 'w')
+	
+	# Set output names of the various steps
+	# If the pipeline is to be run in splits per chromosome output files should be named different
+	afloci_file_postfix = "_loci.txt"
+	
+	'''
+	########################################################### Get loci ###########################################################
+	'''
+	# Generate the loci file from vcf
+	cmd = createGenerateAFLociCmd(samplename, afloci_file_postfix, vcf_file, run_dir)
+	outf.write(generateBsubCmd("loci_"+samplename, log_dir, cmd, queue="normal", mem=1, depends=None, isArray=False) + "\n")
+	
+	'''
+	########################################################### Dump Counts ###########################################################
+	'''
+	# Dump allele counts from the Sanger pipeline
+	cmd = createDumpCountsSangerCmd(samplename, vcf_file, run_dir)
+	outf.write(generateBsubCmd("dumpCounts_"+samplename, log_dir, cmd, queue="normal", mem=1, depends=None, isArray=False) + "\n")
+	
+	'''
+	########################################################### Generate DP input ###########################################################
+	'''
+	cmd = createDpInputCmd(samplename, samplename+afloci_file_postfix, samplename+"_alleleFrequency.txt", subclone_file, rho_psi_file, "NA", "NA", gender, bb_dir, run_dir)
+	outf.write(generateBsubCmd("dpIn_"+samplename, log_dir, cmd, queue="normal", mem=2, depends=["loci_"+samplename, "dumpCounts_"+samplename], isArray=False) + "\n")
+
+	'''
+	########################################################### DP input to VCF ###########################################################
+	'''
+	cmd = createDpIn2VcfCmd(vcf_file, path.joinpath(run_dir,samplename+"_allDirichletProcessInfo.txt"), path.joinpath(run_dir, samplename+".dpIn.vcf"), fai_file, ignore_file)
+	outf.write(generateBsubCmd("dpIn2Vcf_"+samplename, log_dir, cmd, queue="normal", mem=2, depends=["dpIn_"+samplename], isArray=False) + "\n")
+	
+	outf.close()
+	
+	# Make executable
+	st = os.stat(runscript)
+	os.chmod(runscript, st.st_mode | stat.S_IEXEC)
+	
+	return(runscript)
+	
 def _readSampleSheet(infile):
 	list_of_info = []
 	for line in open(infile, "r"):
@@ -280,13 +335,14 @@ def main(argv):
 	parser.add_argument("-f", type=str, help="Full path to a Fasta index file")
 	parser.add_argument("-i", type=str, help="Full path to file with chromosome names to ignore")
 	parser.add_argument("--ip", type=str, help="Full path to file with chromsome names to ignore ONLY when phasing")
+	parser.add_argument("--icgc", action="store_true", help="Generate ICGC pipeline")
 	
 	# Parameters
 	parser.add_argument("--min_baq", type=int, help="Minimum BAQ for a base to be included")
 	parser.add_argument("--min_maq", type=int, help="Minimum MAQ for a base to be included")
 	parser.add_argument("--max_distance", type=int, help="Maximum distance for a pair of mutations to be considered for phasing. Use when either mut_mut or mut_cn phasing")
 	
-	parser.set_defaults(min_baq=10, min_maq=10, max_distance=700, debug=False, f=CHROMS_FAI, i=IGNORE_FILE, ip=IGNORE_FILE_PHASE, split_chroms=False)
+	parser.set_defaults(min_baq=10, min_maq=10, max_distance=700, debug=False, f=CHROMS_FAI, i=IGNORE_FILE, ip=IGNORE_FILE_PHASE, split_chroms=False, icgc=False)
 	
 	args = parser.parse_args()
 	
@@ -331,25 +387,40 @@ def main(argv):
 			run_dir.mkdir()
 			log_dir.mkdir()
 		
-		runscript = dp_preprocessing_pipeline(samplename=samplename, 
-								  vcf_file=vcf_file, 
-								  fai_file=args.f,
-								  ignore_file=args.i,
-								  no_chroms=no_chroms,
-								  no_chroms_phasing=no_chroms_phasing,
-								  bam_file=bam_file, 
-								  bai_file=bai_file, 
-								  baf_file=baf_file, 
-								  hap_info_prefix=hap_info_prefix,
-								  hap_info_suffix=hap_info_suffix,
-								  subclone_file=subclone_file, 
-								  rho_psi_file=rho_psi_file, 
-								  max_distance=args.max_distance, 
-								  gender=gender, 
-								  bb_dir=bb_dir, 
-								  log_dir=log_dir, 
-								  run_dir=run_dir,
-				  split_chroms=args.split_chroms)
+		if (args.icgc):
+			runscript = dp_preprocessing_icgc_pipeline(samplename=samplename, 
+					  vcf_file=vcf_file, 
+					  fai_file=args.f,
+					  ignore_file=args.i,
+					  baf_file=baf_file, 
+					  hap_info_prefix=hap_info_prefix,
+					  hap_info_suffix=hap_info_suffix,
+					  subclone_file=subclone_file, 
+					  rho_psi_file=rho_psi_file, 
+					  gender=gender, 
+					  bb_dir=bb_dir, 
+					  log_dir=log_dir, 
+					  run_dir=run_dir)
+		else:
+			runscript = dp_preprocessing_pipeline(samplename=samplename, 
+									  vcf_file=vcf_file, 
+									  fai_file=args.f,
+									  ignore_file=args.i,
+									  no_chroms=no_chroms,
+									  no_chroms_phasing=no_chroms_phasing,
+									  bam_file=bam_file, 
+									  bai_file=bai_file, 
+									  baf_file=baf_file, 
+									  hap_info_prefix=hap_info_prefix,
+									  hap_info_suffix=hap_info_suffix,
+									  subclone_file=subclone_file, 
+									  rho_psi_file=rho_psi_file, 
+									  max_distance=args.max_distance, 
+									  gender=gender, 
+									  bb_dir=bb_dir, 
+									  log_dir=log_dir, 
+									  run_dir=run_dir,
+					  split_chroms=args.split_chroms)
 		runscripts_sample.append(runscript)
 		
 	# Create a master script that contains pointers to all sample specific runscripts
