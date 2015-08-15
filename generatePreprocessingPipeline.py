@@ -315,7 +315,7 @@ def dp_preprocessing_icgc_pipeline(samplename, vcf_file, baf_file, hap_info_pref
 
 def dp_phasing_pipeline(samplename, vcf_file, bam_file, bai_file, fai_file, baf_file, hap_info_prefix, hap_info_suffix, ignore_file, no_chroms, no_chroms_phasing, max_distance, gender, bb_dir, log_dir, run_dir, split_chroms):
 	# Setup a pipeline script for this sample
-	runscript = path.joinpath(run_dir, "RunCommands_"+samplename+".sh")
+	runscript = path.joinpath(run_dir, "RunCommands_phasing_"+samplename+".sh")
 	outf = open(runscript, 'w')
 	
 	# Set output names of the various steps
@@ -367,7 +367,14 @@ def dp_phasing_pipeline(samplename, vcf_file, bam_file, bai_file, fai_file, baf_
 	infile_list = [item[0]+str(item[1])+item[2] for item in zip([samplename+"_phased_mutcn_chr"]*no_chroms, range(1,no_aut_chroms+1), [".txt"]*no_chroms)]
 	cmd = createConcatSplitFilesCmd(samplename, infile_list, samplename+"_phasedmutCN.txt", True, run_dir)
 	outf.write(generateBsubCmd("concMCP_"+samplename, log_dir, cmd, queue="normal", mem=1, depends=["mcp_"+samplename], isArray=False) + "\n")   
-	
+
+	outf.close()
+
+	# Make executable
+	st = os.stat(runscript)
+	os.chmod(runscript, st.st_mode | stat.S_IEXEC)
+
+	return(runscript)
 	
 def _readSampleSheet(infile):
 	list_of_info = []
@@ -392,6 +399,7 @@ def main(argv):
 	parser.add_argument("-i", type=str, help="Full path to file with chromosome names to ignore")
 	parser.add_argument("--ip", type=str, help="Full path to file with chromsome names to ignore ONLY when phasing")
 	parser.add_argument("--icgc", action="store_true", help="Generate ICGC pipeline")
+	parser.add_argument("--phasing", action="store_true", help="Generate the phasing only pipeline")
 	
 	# Parameters
 	parser.add_argument("--min_baq", type=int, help="Minimum BAQ for a base to be included")
