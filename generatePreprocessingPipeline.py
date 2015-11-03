@@ -68,6 +68,27 @@ def createDumpCountsSangerCmd(samplename, vcf_file, run_dir):
 						"-r", run_dir,
 						"-o", samplename+"_alleleFrequency.txt"]))
 	
+def createDumpCountsBroadCmd(samplename, vcf_file, run_dir):
+	return(merge_items([DPP_SCRIPT, "-c dumpCountsBroad",
+						"-s", samplename,
+						"-v", vcf_file,
+						"-r", run_dir,
+						"-o", samplename+"_alleleFrequency.txt"]))
+	
+def createDumpCountsDkfzCmd(samplename, vcf_file, run_dir):
+	return(merge_items([DPP_SCRIPT, "-c dumpCountsDkfz",
+						"-s", samplename,
+						"-v", vcf_file,
+						"-r", run_dir,
+						"-o", samplename+"_alleleFrequency.txt"]))
+	
+def createDumpCountsMuseCmd(samplename, vcf_file, run_dir):
+	return(merge_items([DPP_SCRIPT, "-c dumpCountsMuse",
+						"-s", samplename,
+						"-v", vcf_file,
+						"-r", run_dir,
+						"-o", samplename+"_alleleFrequency.txt"]))
+	
 def createConcatSplitFilesCmd(samplename, infile_list, outfile, haveHeader, run_dir):
 	cmd = [DPP_SCRIPT, "-c concatSplitFiles",
 			"-s", samplename,
@@ -267,7 +288,7 @@ def dp_preprocessing_pipeline(samplename, vcf_file, bam_file, bai_file, baf_file
 	return(runscript)
 	
 	
-def dp_preprocessing_icgc_pipeline(samplename, vcf_file, baf_file, hap_info_prefix, hap_info_suffix, subclone_file, rho_psi_file, fai_file, ignore_file, gender, bb_dir, log_dir, run_dir):
+def dp_preprocessing_icgc_pipeline(samplename, vcf_file, baf_file, hap_info_prefix, hap_info_suffix, subclone_file, rho_psi_file, fai_file, ignore_file, gender, bb_dir, log_dir, run_dir, icgc_pipeline):
 	'''
 	Simple pipeline for ICGC that runs from allele counts in a VCF file. It does not do any mutation phasing.	
 	'''
@@ -290,7 +311,14 @@ def dp_preprocessing_icgc_pipeline(samplename, vcf_file, baf_file, hap_info_pref
 	########################################################### Dump Counts ###########################################################
 	'''
 	# Dump allele counts from the Sanger pipeline
-	cmd = createDumpCountsSangerCmd(samplename, vcf_file, run_dir)
+	if icgc_pipeline=="sanger":
+		cmd = createDumpCountsSangerCmd(samplename, vcf_file, run_dir)
+	elif icgc_pipeline=="dkfz":
+		cmd = createDumpCountsDkfzCmd(samplename, vcf_file, run_dir)
+	elif icgc_pipeline=="broad":
+		cmd = createDumpCountsBroadCmd(samplename, vcf_file, run_dir)
+	elif icgc_pipeline=="muse":
+		cmd = createDumpCountsBroadCmd(samplename, vcf_file, run_dir)
 	outf.write(generateBsubCmd("dumpCounts_"+samplename, log_dir, cmd, queue="normal", mem=1, depends=None, isArray=False) + "\n")
 	
 	'''
@@ -399,6 +427,10 @@ def main(argv):
 	parser.add_argument("-i", type=str, help="Full path to file with chromosome names to ignore")
 	parser.add_argument("--ip", type=str, help="Full path to file with chromsome names to ignore ONLY when phasing")
 	parser.add_argument("--icgc", action="store_true", help="Generate ICGC pipeline")
+	parser.add_argument("--sanger", action="store_true", help="Run preprocessing on the ICGC Sanger pipeline output")
+	parser.add_argument("--broad", action="store_true", help="Run preprocessing on the ICGC Broad pipeline output")
+	parser.add_argument("--dkfz", action="store_true", help="Run preprocessing on the ICGC DKFZ pipeline output")
+	parser.add_argument("--muse", action="store_true", help="Run preprocessing on the ICGC Muse caller output")
 	parser.add_argument("--phasing", action="store_true", help="Generate the phasing only pipeline")
 	
 	# Parameters
@@ -406,7 +438,7 @@ def main(argv):
 	parser.add_argument("--min_maq", type=int, help="Minimum MAQ for a base to be included")
 	parser.add_argument("--max_distance", type=int, help="Maximum distance for a pair of mutations to be considered for phasing. Use when either mut_mut or mut_cn phasing")
 	
-	parser.set_defaults(min_baq=10, min_maq=10, max_distance=700, debug=False, f=CHROMS_FAI, i=IGNORE_FILE, ip=IGNORE_FILE_PHASE, split_chroms=False, icgc=False)
+	parser.set_defaults(min_baq=10, min_maq=10, max_distance=700, debug=False, f=CHROMS_FAI, i=IGNORE_FILE, ip=IGNORE_FILE_PHASE, split_chroms=False, icgc=False, sanger=False, dkfz=False, broad=False, muse=False)
 	
 	args = parser.parse_args()
 	
@@ -452,6 +484,21 @@ def main(argv):
 			log_dir.mkdir()
 		
 		if (args.icgc):
+			if args.sanger+args.dkfz+args.broad+args.muse > 1:
+				print("Please provide only one of the ICGC pipeline options")
+				sys.exit(1)
+			if args.sanger+args.dkfz+args.broad+args.muse == 0:
+				print("Please supply one of the ICGC pipeline parameters")
+				sys.exit(1)
+			if args.sanger:
+				icgc_pipeline = "sanger"
+			elif args.dkfz:
+				icgc_pipeline = "dkfz"
+			elif args.broad:
+				icgc_pipeline = "broad"
+			elif args.muse:
+				icgc_pipeline = "muse"
+				
 			# ICGC preprocessing pipeline that dumps allele counts from VCF and doesn't do phasing
 			runscript = dp_preprocessing_icgc_pipeline(samplename=samplename, 
 					  vcf_file=vcf_file, 
@@ -465,7 +512,8 @@ def main(argv):
 					  gender=gender, 
 					  bb_dir=bb_dir, 
 					  log_dir=log_dir, 
-					  run_dir=run_dir)
+					  run_dir=run_dir,
+					  icgc_pipeline=icgc_pipeline)
 		
 		elif (args.phasing):
 			# Pure phasing pipeline
