@@ -318,7 +318,7 @@ def dp_preprocessing_icgc_pipeline(samplename, vcf_file, baf_file, hap_info_pref
 	elif icgc_pipeline=="broad":
 		cmd = createDumpCountsBroadCmd(samplename, vcf_file, run_dir)
 	elif icgc_pipeline=="muse":
-		cmd = createDumpCountsBroadCmd(samplename, vcf_file, run_dir)
+		cmd = createDumpCountsMuseCmd(samplename, vcf_file, run_dir)
 	outf.write(generateBsubCmd("dumpCounts_"+samplename, log_dir, cmd, queue="normal", mem=1, depends=None, isArray=False) + "\n")
 	
 	'''
