@@ -463,18 +463,28 @@ def main(argv):
 	
 	runscripts_sample = []
 	for i in range(0,len(samples)):
-		samplename = samples[i][0]
+		donor = samples[i][0]
+		samplename = samples[i][1]
 		print(samplename)
-		vcf_file = samples[i][1]
-		bam_file = samples[i][2]
-		bai_file = samples[i][3]
-		bb_dir = samples[i][4]
-		gender = samples[i][5]
-		baf_file = samples[i][6]
-		subclone_file = samples[i][7]
-		rho_psi_file = samples[i][8]
-		hap_info_prefix = samples[i][9]
-		hap_info_suffix = samples[i][10]
+
+
+		# Fetch all vcf files from this donor, in case of multi-sample case
+		vcf_file = []
+		for j in range(0, len(samples)):
+			if donor==samples[j][0] and i!=j:
+				vcf_file = vcf_file + [samples[j][2]]
+		vcf_file = " ".join(vcf_file)
+
+		#vcf_file = samples[i][2]
+		bam_file = samples[i][3]
+		bai_file = samples[i][4]
+		bb_dir = samples[i][5]
+		gender = samples[i][6]
+		baf_file = samples[i][7]
+		subclone_file = samples[i][8]
+		rho_psi_file = samples[i][9]
+		hap_info_prefix = samples[i][10]
+		hap_info_suffix = samples[i][11]
 	
 		run_dir = path.joinpath(args.r, samplename)
 		log_dir = path.joinpath(run_dir, "logs")
