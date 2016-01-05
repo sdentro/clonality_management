@@ -65,7 +65,10 @@ class SampleSheet(object):
         return self._sample2normals[samplename]
     
     def getSex(self, samplename):
-        return self._sample2sex[samplename]  
+	if samplename in self._sample2sex.keys():
+        	return self._sample2sex[samplename]  
+	else:
+		return None
     
     def isMale(self, samplename):
         return (self.getSex(samplename) == 'male') or (self.getSex(samplename) == 'Male')
