@@ -16,9 +16,13 @@ DPPVCF_SCRIPT = "python /nfs/users/nfs_s/sd11/software/pipelines/dirichlet_prepr
 DPP_SCRIPT = "python /nfs/users/nfs_s/sd11/repo/dirichlet_preprocessing/dirichlet_preprocessing.py"
 #DPP_SCRIPT = "python /nfs/users/nfs_s/sd11/software/pipelines/dirichlet_preprocessing_v1.0/dirichlet_preprocessing.py"
 
+REF_GENOME = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/refs_icgc_pancan/genome.fa"
 CHROMS_FAI = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/refs_icgc_pancan/genome.fa.fai"
 IGNORE_FILE = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_ignore/ignore.txt"
 IGNORE_FILE_PHASE = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_ignore/ignore_mut_cn_phasing.txt"
+
+TRINUCLEOTIDECOLUMN = 5 # Trinucleotide context is annotated in to the loci and is available in this column
+REFALLELECOLUMN = 3
 
 d = [line.strip().split("\t")[0] for line in open(CHROMS_FAI, "r")]
 i = [line.strip() for line in open(IGNORE_FILE, "r")]
@@ -35,6 +39,16 @@ def createGenerateAFLociCmd(samplename, outfile_postfix, vcf_file, run_dir):
 						"-f", CHROMS_FAI,
 						"-i", IGNORE_FILE,
 						"-r", run_dir]))
+	
+def createFilterForDeaminaseCmd(samplename, loci_file, outfile_postfix, run_dir):
+	return(merge_items([DPP_SCRIPT, "-c filterForDeaminase",
+					"-s", samplename,
+					"-o", samplename+outfile_postfix,
+					"--loci", loci_file,
+					"--trinucleotide_column", TRINUCLEOTIDECOLUMN,
+					"--ref_allele_column", REFALLELECOLUMN,
+					"--ref_genome", REF_GENOME,
+					"-r", run_dir]))
 	
 def createSplitLociCmd(samplename, loci_file, prefix, postfix, fai_file, ignore_file, run_dir):
 	return(merge_items([DPP_SCRIPT, "-c splitLociFile",
@@ -157,7 +171,7 @@ def createDpIn2VcfCmd(vcf_file, dpIn_file, outfile, fai_file, ignore_file):
 						"--ig", ignore_file,
 						"-o", outfile]))
 	
-def dp_preprocessing_pipeline(samplename, vcf_file, bam_file, bai_file, baf_file, hap_info_prefix, hap_info_suffix, subclone_file, rho_psi_file, fai_file, ignore_file, no_chroms, no_chroms_phasing, max_distance, gender, bb_dir, log_dir, run_dir, split_chroms):
+def dp_preprocessing_pipeline(samplename, vcf_file, bam_file, bai_file, baf_file, hap_info_prefix, hap_info_suffix, subclone_file, rho_psi_file, fai_file, ignore_file, no_chroms, no_chroms_phasing, max_distance, gender, bb_dir, log_dir, run_dir, split_chroms, filter_deaminase):
 	'''
 	Creates a list of commands that together form the preprocessing pipeline. It consists of 3 separate threads (a,b,c)
 	that come together in the last step. 
@@ -191,14 +205,35 @@ def dp_preprocessing_pipeline(samplename, vcf_file, bam_file, bai_file, baf_file
 		af_file_prefix = samplename+"_alleleFrequency"
 		mut_mut_file_prefix = samplename+"_phasedmuts"
 	
+	'''
+	########################################################### Get loci ###########################################################
+	'''
 	# Generate the loci file from vcf
 	cmd = createGenerateAFLociCmd(samplename, afloci_file_postfix, vcf_file, run_dir)
 	outf.write(generateBsubCmd("loci_"+samplename, log_dir, cmd, queue="normal", mem=1, depends=None, isArray=False) + "\n")
+	split_depends_on = "loci_"+samplename
 	
+	'''
+	########################################################### Filter deaminase ###########################################################
+	'''
+	if filter_deaminase:
+		deaminaseloci_file_postfix = "_loci_deaminase.txt"
+		cmd = createFilterForDeaminaseCmd(samplename, samplename+afloci_file_postfix, deaminaseloci_file_postfix, run_dir)
+		outf.write(generateBsubCmd("filterDeaminase_"+samplename, log_dir, cmd, queue="normal", mem=1, depends=["loci_"+samplename], isArray=False) + "\n")
+		# Now redefine the loci input file as the filtered one
+		afloci_file_postfix = deaminaseloci_file_postfix
+		split_depends_on = "filterDeaminase_"+samplename
+	
+	'''
+	########################################################### Split loci ###########################################################
+	'''
 	# Split the loci file per chromosome
 	cmd = createSplitLociCmd(samplename, samplename+afloci_file_postfix, samplename+"_loci_chr", ".txt", fai_file, ignore_file, run_dir)
-	outf.write(generateBsubCmd("splitLoci_"+samplename, log_dir, cmd, queue="normal", mem=1, depends=["loci_"+samplename], isArray=False) + "\n")
+	outf.write(generateBsubCmd("splitLoci_"+samplename, log_dir, cmd, queue="normal", mem=1, depends=[split_depends_on], isArray=False) + "\n")
 	
+	'''
+	########################################################### Get allele frequencies ###########################################################
+	'''
 	# Get the allele frequencies
 	cmd = createGetAlleleFrequencyCmd(samplename, loci_file_prefix, bam_file, af_file_prefix, run_dir, split_chroms)
 	writeSimpleShellScript(run_dir, "RunGetAlleleFrequency_"+samplename+".sh", [cmd])
@@ -288,7 +323,7 @@ def dp_preprocessing_pipeline(samplename, vcf_file, bam_file, bai_file, baf_file
 	return(runscript)
 	
 	
-def dp_preprocessing_icgc_pipeline(samplename, vcf_file, baf_file, hap_info_prefix, hap_info_suffix, subclone_file, rho_psi_file, fai_file, ignore_file, gender, bb_dir, log_dir, run_dir, icgc_pipeline):
+def dp_preprocessing_icgc_pipeline(samplename, vcf_file, baf_file, hap_info_prefix, hap_info_suffix, subclone_file, rho_psi_file, fai_file, ignore_file, gender, bb_dir, log_dir, run_dir, icgc_pipeline, filter_deaminase):
 	'''
 	Simple pipeline for ICGC that runs from allele counts in a VCF file. It does not do any mutation phasing.	
 	'''
@@ -306,6 +341,18 @@ def dp_preprocessing_icgc_pipeline(samplename, vcf_file, baf_file, hap_info_pref
 	# Generate the loci file from vcf
 	cmd = createGenerateAFLociCmd(samplename, afloci_file_postfix, vcf_file, run_dir)
 	outf.write(generateBsubCmd("loci_"+samplename, log_dir, cmd, queue="normal", mem=1, depends=None, isArray=False) + "\n")
+	dpin_depends_on = "loci_"+samplename
+	
+	'''
+	########################################################### Filter deaminase ###########################################################
+	'''
+	if filter_deaminase:
+		deaminaseloci_file_postfix = "_loci_deaminase.txt"
+		cmd = createFilterForDeaminaseCmd(samplename, samplename+afloci_file_postfix, deaminaseloci_file_postfix, run_dir)
+		outf.write(generateBsubCmd("filterDeaminase_"+samplename, log_dir, cmd, queue="normal", mem=1, depends=["loci_"+samplename], isArray=False) + "\n")
+		# Now redefine the loci input file as the filtered one
+		afloci_file_postfix = deaminaseloci_file_postfix
+		dpin_depends_on = "filterDeaminase_"+samplename
 	
 	'''
 	########################################################### Dump Counts ###########################################################
@@ -325,7 +372,7 @@ def dp_preprocessing_icgc_pipeline(samplename, vcf_file, baf_file, hap_info_pref
 	########################################################### Generate DP input ###########################################################
 	'''
 	cmd = createDpInputCmd(samplename, samplename+afloci_file_postfix, samplename+"_alleleFrequency.txt", subclone_file, rho_psi_file, "NA", "NA", gender, bb_dir, run_dir)
-	outf.write(generateBsubCmd("dpIn_"+samplename, log_dir, cmd, queue="normal", mem=2, depends=["loci_"+samplename, "dumpCounts_"+samplename], isArray=False) + "\n")
+	outf.write(generateBsubCmd("dpIn_"+samplename, log_dir, cmd, queue="normal", mem=2, depends=[dpin_depends_on, "dumpCounts_"+samplename], isArray=False) + "\n")
 
 	'''
 	########################################################### DP input to VCF ###########################################################
@@ -341,7 +388,7 @@ def dp_preprocessing_icgc_pipeline(samplename, vcf_file, baf_file, hap_info_pref
 	
 	return(runscript)
 
-def dp_phasing_pipeline(samplename, vcf_file, bam_file, bai_file, fai_file, baf_file, hap_info_prefix, hap_info_suffix, ignore_file, no_chroms, no_chroms_phasing, max_distance, gender, bb_dir, log_dir, run_dir, split_chroms):
+def dp_phasing_pipeline(samplename, vcf_file, bam_file, bai_file, fai_file, baf_file, hap_info_prefix, hap_info_suffix, ignore_file, no_chroms, no_chroms_phasing, max_distance, gender, bb_dir, log_dir, run_dir, split_chroms, filter_deaminase):
 	# Setup a pipeline script for this sample
 	runscript = path.joinpath(run_dir, "RunCommands_phasing_"+samplename+".sh")
 	outf = open(runscript, 'w')
@@ -359,13 +406,28 @@ def dp_phasing_pipeline(samplename, vcf_file, bam_file, bai_file, fai_file, baf_
 		loci_file_prefix = samplename+"_loci"
 		mut_mut_file_prefix = samplename+"_phasedmuts"
 	
+	'''
+	########################################################### Get loci ###########################################################
+	'''
 	# Generate the loci file from vcf
 	cmd = createGenerateAFLociCmd(samplename, afloci_file_postfix, vcf_file, run_dir)
 	outf.write(generateBsubCmd("loci_"+samplename, log_dir, cmd, queue="normal", mem=1, depends=None, isArray=False) + "\n")
+	splitloci_depends_on = "loci_"+samplename
+	
+	'''
+	########################################################### Filter deaminase ###########################################################
+	'''
+	if filter_deaminase:
+		deaminaseloci_file_postfix = "_loci_deaminase.txt"
+		cmd = createFilterForDeaminaseCmd(samplename, samplename+afloci_file_postfix, deaminaseloci_file_postfix, run_dir)
+		outf.write(generateBsubCmd("filterDeaminase_"+samplename, log_dir, cmd, queue="normal", mem=1, depends=["loci_"+samplename], isArray=False) + "\n")
+		# Now redefine the loci input file as the filtered one
+		afloci_file_postfix = deaminaseloci_file_postfix
+		splitloci_depends_on = "filterDeaminase_"+samplename
 	
 	# Split the loci file per chromosome
 	cmd = createSplitLociCmd(samplename, samplename+afloci_file_postfix, samplename+"_loci_chr", ".txt", fai_file, ignore_file, run_dir)
-	outf.write(generateBsubCmd("splitLoci_"+samplename, log_dir, cmd, queue="normal", mem=1, depends=["loci_"+samplename], isArray=False) + "\n")
+	outf.write(generateBsubCmd("splitLoci_"+samplename, log_dir, cmd, queue="normal", mem=1, depends=[splitloci_depends_on], isArray=False) + "\n")
 	
 	'''
 	########################################################### Mut Mut Phasing ###########################################################
@@ -376,7 +438,7 @@ def dp_phasing_pipeline(samplename, vcf_file, bam_file, bai_file, fai_file, baf_
 	if split_chroms:
 		outf.write(generateBsubCmd("mmp_"+samplename+_arrayJobNameExt(no_chroms), log_dir, cmd, queue="normal", mem=2, depends=["splitLoci_"+samplename], isArray=True) + "\n")
 	else:
-		outf.write(generateBsubCmd("mmp_"+samplename, log_dir, cmd, queue="normal", mem=2, depends=["loci_"+samplename], isArray=False) + "\n")
+		outf.write(generateBsubCmd("mmp_"+samplename, log_dir, cmd, queue="normal", mem=2, depends=[splitloci_depends_on], isArray=False) + "\n")
 
 	if split_chroms:
 		infile_list = [item[0]+str(item[1])+item[2] for item in zip([samplename+"_phasedmuts_chr"]*no_chroms, range(1,no_chroms+1), [".txt"]*no_chroms)]
@@ -432,13 +494,14 @@ def main(argv):
 	parser.add_argument("--dkfz", action="store_true", help="Run preprocessing on the ICGC DKFZ pipeline output")
 	parser.add_argument("--muse", action="store_true", help="Run preprocessing on the ICGC Muse caller output")
 	parser.add_argument("--phasing", action="store_true", help="Generate the phasing only pipeline")
+	parser.add_argument("--filter_deaminase", action="store_true", help="Only keep deaminase mutations")
 	
 	# Parameters
 	parser.add_argument("--min_baq", type=int, help="Minimum BAQ for a base to be included")
 	parser.add_argument("--min_maq", type=int, help="Minimum MAQ for a base to be included")
 	parser.add_argument("--max_distance", type=int, help="Maximum distance for a pair of mutations to be considered for phasing. Use when either mut_mut or mut_cn phasing")
 	
-	parser.set_defaults(min_baq=10, min_maq=10, max_distance=700, debug=False, f=CHROMS_FAI, i=IGNORE_FILE, ip=IGNORE_FILE_PHASE, split_chroms=False, icgc=False, sanger=False, dkfz=False, broad=False, muse=False)
+	parser.set_defaults(min_baq=10, min_maq=10, max_distance=700, debug=False, f=CHROMS_FAI, i=IGNORE_FILE, ip=IGNORE_FILE_PHASE, split_chroms=False, icgc=False, sanger=False, dkfz=False, broad=False, muse=False, filter_deaminase=False)
 	
 	args = parser.parse_args()
 	
@@ -446,8 +509,6 @@ def main(argv):
 	chroms = [line.strip().split("\t")[0] for line in open(args.f, 'r')]
 	chroms_ignore = [line.strip() for line in open(args.i, 'r')]
 	chroms_ignore_phase = [line.strip() for line in open(args.ip, 'r')]
-	
-	#print(chroms)
 	
 	no_chroms = 0
 	no_chroms_phasing = 0
@@ -469,7 +530,7 @@ def main(argv):
 
 
 		# Fetch all vcf files from this donor, in case of multi-sample case
-		vcf_file = []
+		vcf_file = [samples[i][2]]
 		for j in range(0, len(samples)):
 			if donor==samples[j][0] and i!=j:
 				vcf_file = vcf_file + [samples[j][2]]
@@ -523,7 +584,8 @@ def main(argv):
 					  bb_dir=bb_dir, 
 					  log_dir=log_dir, 
 					  run_dir=run_dir,
-					  icgc_pipeline=icgc_pipeline)
+					  icgc_pipeline=icgc_pipeline,
+					  filter_deaminase=args.filter_deaminase)
 		
 		elif (args.phasing):
 			# Pure phasing pipeline
@@ -543,7 +605,8 @@ def main(argv):
 										bb_dir=bb_dir, 
 										log_dir=log_dir, 
 										run_dir=run_dir, 
-										split_chroms=args.split_chroms)
+										split_chroms=args.split_chroms,
+					  					filter_deaminase=args.filter_deaminase)
 			
 		else:
 			# Full pipeline that does allele counting and phasing
@@ -565,7 +628,8 @@ def main(argv):
 									  bb_dir=bb_dir, 
 									  log_dir=log_dir, 
 									  run_dir=run_dir,
-					  split_chroms=args.split_chroms)
+									  split_chroms=args.split_chroms,
+									  filter_deaminase=args.filter_deaminase)
 		runscripts_sample.append(runscript)
 		
 	# Create a master script that contains pointers to all sample specific runscripts
