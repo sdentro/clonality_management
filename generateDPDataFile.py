@@ -20,6 +20,7 @@ def generateDPDataFile(proj_name, infile, dp_in_dir, run_dir):
 	outfile = open(path.joinpath(run_dir, proj_name+".txt"), 'w')	
 	outfile.write("sample\tsubsample\tdatafile\tcellularity\tsex\tcndatafile\n")
 	for sample in ss.getSamplenames():
+		lines = []
 		for tumour in ss.getTumours(sample):
 			dp_in_file = dp_in_files[np.array([tumour in item for item in dp_in_files])]
 			if not len(dp_in_file) == 1:
@@ -37,10 +38,22 @@ def generateDPDataFile(proj_name, infile, dp_in_dir, run_dir):
 				continue
 			elif len(cn_dp_in_file) == 0:
 				cn_dp_in_file = np.array(["NA"])
+
+			if ss.getSex(tumour) is None:
+				sex = "male"
+			else:
+				sex = ss.getSex(tumour)
+
 			if tumour in tumour2purity.keys():
-				outfile.write(sample+"\t"+tumour+"\t"+path(dp_in_file[0]).basename()+"\t"+tumour2purity[tumour]+"\t"+ss.getSex(tumour)+"\t"+path(cn_dp_in_file[0]).basename()+"\n")
+				lines = lines + [sample+"\t"+tumour+"\t"+path(dp_in_file[0]).basename()+"\t"+tumour2purity[tumour]+"\t"+sex+"\t"+path(cn_dp_in_file[0]).basename()+"\n"]
+				#outfile.write(sample+"\t"+tumour+"\t"+path(dp_in_file[0]).basename()+"\t"+tumour2purity[tumour]+"\t"+sex+"\t"+path(cn_dp_in_file[0]).basename()+"\n")
 			else:
 				print("Did not find purity estimate for "+tumour)
+
+		if len(lines) == len(ss.getTumours(sample)):
+			for line in lines: outfile.write(line)
+		else:
+			print("Incomplete multi sample case "+sample)
 	outfile.close()
 		
 def getTumourPurity(ss):
