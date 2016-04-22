@@ -12,7 +12,8 @@ vcf_file = "/lustre/scratch110/sanger/sd11/epitax/variants/filtered_vcf/PD7404a.
 run_dir = "/nfs/users/nfs_s/sd11/repo/dirichlet_preprocessing/test/PD7404a/"
 
 PIPE_DIR = "/nfs/users/nfs_s/sd11/software/pipelines/dirichlet_preprocessing_v1.0"
-DPPVCF_SCRIPT = "python /nfs/users/nfs_s/sd11/software/pipelines/dirichlet_preprocessing_v1.0/dpIn2vcf.py"
+#DPPVCF_SCRIPT = "python /nfs/users/nfs_s/sd11/software/pipelines/dirichlet_preprocessing_v1.0/dpIn2vcf.py"
+DPPVCF_SCRIPT = "python /nfs/users/nfs_s/sd11/repo/dirichlet_preprocessing/dpIn2vcf.py"
 DPP_SCRIPT = "python /nfs/users/nfs_s/sd11/repo/dirichlet_preprocessing/dirichlet_preprocessing.py"
 #DPP_SCRIPT = "python /nfs/users/nfs_s/sd11/software/pipelines/dirichlet_preprocessing_v1.0/dirichlet_preprocessing.py"
 
@@ -22,7 +23,7 @@ IGNORE_FILE = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_i
 IGNORE_FILE_PHASE = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_ignore/ignore_mut_cn_phasing.txt"
 
 TRINUCLEOTIDECOLUMN = 5 # Trinucleotide context is annotated in to the loci and is available in this column
-REFALLELECOLUMN = 3
+ALTALLELECOLUMN = 4
 
 d = [line.strip().split("\t")[0] for line in open(CHROMS_FAI, "r")]
 i = [line.strip() for line in open(IGNORE_FILE, "r")]
@@ -46,7 +47,7 @@ def createFilterForDeaminaseCmd(samplename, loci_file, outfile_postfix, run_dir)
 					"-o", samplename+outfile_postfix,
 					"--loci", loci_file,
 					"--trinucleotide_column", TRINUCLEOTIDECOLUMN,
-					"--ref_allele_column", REFALLELECOLUMN,
+					"--alt_allele_column", ALTALLELECOLUMN,
 					"--ref_genome", REF_GENOME,
 					"-r", run_dir]))
 	
@@ -170,6 +171,34 @@ def createDpIn2VcfCmd(vcf_file, dpIn_file, outfile, fai_file, ignore_file):
 						"-f", fai_file,
 						"--ig", ignore_file,
 						"-o", outfile]))
+	
+def createCnDpInputCmd(samplename, subclone_file, gender, outfile, run_dir):
+	return(merge_items([DPP_SCRIPT, "-c cnDpInput",
+					    "-s", samplename,
+						"--subclones", subclone_file,
+						"-x", gender,
+						"-o", outfile,
+						"-r", run_dir]))
+	
+def cndp_preprocessing_pipeline(samplename, subclone_file, gender, bb_dir, log_dir, run_dir):
+	'''
+	Create the copy number DP input file
+	'''	
+	runscript = path.joinpath(run_dir, "RunCommands_cnDpInput_"+samplename+".sh")
+	outf = open(runscript, 'w')
+	
+	infile = bb_dir+"/"+subclone_file
+	outfile = samplename+"_cnDirichletInput.txt"
+	cmd = createCnDpInputCmd(samplename, infile, gender, outfile, run_dir)
+	outf.write(generateBsubCmd("cnDpIn_"+samplename, log_dir, cmd, queue="normal", mem=1, depends=None, isArray=False) + "\n")
+	
+	outf.close()
+	
+	# Make executable
+	st = os.stat(runscript)
+	os.chmod(runscript, st.st_mode | stat.S_IEXEC)
+	
+	return(runscript)
 	
 def dp_preprocessing_pipeline(samplename, vcf_file, bam_file, bai_file, baf_file, hap_info_prefix, hap_info_suffix, subclone_file, rho_psi_file, fai_file, ignore_file, no_chroms, no_chroms_phasing, max_distance, gender, bb_dir, log_dir, run_dir, split_chroms, filter_deaminase):
 	'''
@@ -366,13 +395,13 @@ def dp_preprocessing_icgc_pipeline(samplename, vcf_file, baf_file, hap_info_pref
 		cmd = createDumpCountsBroadCmd(samplename, vcf_file, run_dir)
 	elif icgc_pipeline=="muse":
 		cmd = createDumpCountsMuseCmd(samplename, vcf_file, run_dir)
-	outf.write(generateBsubCmd("dumpCounts_"+samplename, log_dir, cmd, queue="normal", mem=1, depends=None, isArray=False) + "\n")
+	outf.write(generateBsubCmd("dumpCounts_"+samplename, log_dir, cmd, queue="normal", mem=10, depends=None, isArray=False) + "\n")
 	
 	'''
 	########################################################### Generate DP input ###########################################################
 	'''
 	cmd = createDpInputCmd(samplename, samplename+afloci_file_postfix, samplename+"_alleleFrequency.txt", subclone_file, rho_psi_file, "NA", "NA", gender, bb_dir, run_dir)
-	outf.write(generateBsubCmd("dpIn_"+samplename, log_dir, cmd, queue="normal", mem=2, depends=[dpin_depends_on, "dumpCounts_"+samplename], isArray=False) + "\n")
+	outf.write(generateBsubCmd("dpIn_"+samplename, log_dir, cmd, queue="basement", mem=10, depends=[dpin_depends_on, "dumpCounts_"+samplename], isArray=False) + "\n")
 
 	'''
 	########################################################### DP input to VCF ###########################################################
@@ -495,6 +524,7 @@ def main(argv):
 	parser.add_argument("--muse", action="store_true", help="Run preprocessing on the ICGC Muse caller output")
 	parser.add_argument("--phasing", action="store_true", help="Generate the phasing only pipeline")
 	parser.add_argument("--filter_deaminase", action="store_true", help="Only keep deaminase mutations")
+	parser.add_argument("--cndpin", action="store_true", help="Generate the copy number DP input pipeline")
 	
 	# Parameters
 	parser.add_argument("--min_baq", type=int, help="Minimum BAQ for a base to be included")
@@ -607,6 +637,14 @@ def main(argv):
 										run_dir=run_dir, 
 										split_chroms=args.split_chroms,
 					  					filter_deaminase=args.filter_deaminase)
+		elif (args.cndpin):
+			# Copy number DP input file generation	
+			runscript = cndp_preprocessing_pipeline(samplename=samplename, 
+												subclone_file=subclone_file, 
+												gender=gender, 
+												bb_dir=bb_dir, 
+												log_dir=log_dir, 
+												run_dir=run_dir)
 			
 		else:
 			# Full pipeline that does allele counting and phasing
