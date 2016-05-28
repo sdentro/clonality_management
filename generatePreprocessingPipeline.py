@@ -104,6 +104,13 @@ def createDumpCountsMuseCmd(samplename, vcf_file, run_dir):
 						"-r", run_dir,
 						"-o", samplename+"_alleleFrequency.txt"]))
 	
+def createDumpCountsICGCconsensusCmd(samplename, vcf_file, run_dir):
+	return(merge_items([DPP_SCRIPT, "-c dumpCountsICGCconsensus",
+						"-s", samplename,
+						"-v", vcf_file,
+						"-r", run_dir,
+						"-o", samplename+"_alleleFrequency.txt"]))
+	
 def createConcatSplitFilesCmd(samplename, infile_list, outfile, haveHeader, run_dir):
 	cmd = [DPP_SCRIPT, "-c concatSplitFiles",
 			"-s", samplename,
@@ -395,6 +402,8 @@ def dp_preprocessing_icgc_pipeline(samplename, vcf_file, baf_file, hap_info_pref
 		cmd = createDumpCountsBroadCmd(samplename, vcf_file, run_dir)
 	elif icgc_pipeline=="muse":
 		cmd = createDumpCountsMuseCmd(samplename, vcf_file, run_dir)
+	elif icgc_pipeline=="icgc_cons":
+		cmd = createDumpCountsICGCconsensusCmd(samplename, vcf_file, run_dir)
 	outf.write(generateBsubCmd("dumpCounts_"+samplename, log_dir, cmd, queue="normal", mem=10, depends=None, isArray=False) + "\n")
 	
 	'''
@@ -522,6 +531,7 @@ def main(argv):
 	parser.add_argument("--broad", action="store_true", help="Run preprocessing on the ICGC Broad pipeline output")
 	parser.add_argument("--dkfz", action="store_true", help="Run preprocessing on the ICGC DKFZ pipeline output")
 	parser.add_argument("--muse", action="store_true", help="Run preprocessing on the ICGC Muse caller output")
+	parser.add_argument("--icgc_cons", action="store_true", help="Run preprocessing on the ICGC consensus pipeline output")
 	parser.add_argument("--phasing", action="store_true", help="Generate the phasing only pipeline")
 	parser.add_argument("--filter_deaminase", action="store_true", help="Only keep deaminase mutations")
 	parser.add_argument("--cndpin", action="store_true", help="Generate the copy number DP input pipeline")
@@ -585,10 +595,10 @@ def main(argv):
 			log_dir.mkdir()
 		
 		if (args.icgc):
-			if args.sanger+args.dkfz+args.broad+args.muse > 1:
+			if args.sanger+args.dkfz+args.broad+args.muse+args.icgc_cons > 1:
 				print("Please provide only one of the ICGC pipeline options")
 				sys.exit(1)
-			if args.sanger+args.dkfz+args.broad+args.muse == 0:
+			if args.sanger+args.dkfz+args.broad+args.muse+args.icgc_cons == 0:
 				print("Please supply one of the ICGC pipeline parameters")
 				sys.exit(1)
 			if args.sanger:
@@ -599,6 +609,8 @@ def main(argv):
 				icgc_pipeline = "broad"
 			elif args.muse:
 				icgc_pipeline = "muse"
+			elif args.icgc_cons:
+				icgc_pipeline = "icgc_cons"
 				
 			# ICGC preprocessing pipeline that dumps allele counts from VCF and doesn't do phasing
 			runscript = dp_preprocessing_icgc_pipeline(samplename=samplename, 
