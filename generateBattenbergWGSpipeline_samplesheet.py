@@ -13,8 +13,8 @@ CGP-IT BB setup
 #################################################################################################################
 '''
 BBSCRIPT = "/software/perl-5.16.3/bin/perl ~/repo/cgpBattenberg/perl/bin/battenberg.pl"
-GENOME_INDEX = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/refs_icgc_pancan/genome.fa.fai"
-IGNORE_FILE = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_ignore/ignore.txt"
+GENOME_INDEX = "/lustre/scratch116/casm/cgp/pancancer/reference/genome.fa.fai"
+IGNORE_FILE = "/lustre/scratch116/casm/cgp/pancancer/reference/battenberg_full/ignore_contigs.txt"
 PROTOCOL = "WGS"
 
 '''
@@ -58,15 +58,20 @@ CLONALITY_DIST_METRIC=0
 ASCAT_DIST_METRIC=1
 MIN_PLOIDY=1.6
 MAX_PLOIDY=4.8
-MIN_RHO=0.1
+MIN_RHO=0.13
+MAX_RHO=1.02
 MIN_GOODNESS_OF_FIT=0.63
 BALANCED_THRESHOLD=0.51
+SEED=123
+USE_SV_BREAKPOINTS_FILE=False
+MAX_CN_STATE=250
 
 IMPUTE_EXE='impute2' #/lustre/scratch110/sanger/sd11/epitax/battenberg/PD7404a/impute_v2.2.2_x86_64_static/impute2'
-IMPUTEINFOFILE='/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_impute_v3/impute_info.txt'
-G1000_PREFIX="/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_1000genomesloci2012_v3/1000genomesAlleles2012_chr"
-G1000_ALLELES_PREFIX="/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_1000genomesloci2012_v3/1000genomesloci2012_chr"
-PROBLEMLOCIFILE='/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_probloci/probloci.txt'
+IMPUTEINFOFILE='/lustre/scratch116/casm/cgp/pancancer/reference/battenberg_full/impute/impute_info.txt'
+G1000_PREFIX="/lustre/scratch116/casm/cgp/pancancer/reference/battenberg_full/1000genomesloci/1000genomesloci2012_chr"
+G1000_ALLELES_PREFIX="/lustre/scratch116/casm/cgp/pancancer/reference/battenberg_full/1000genomesloci/1000genomesAlleles2012_chr"
+PROBLEMLOCIFILE='/lustre/scratch116/casm/cgp/pancancer/reference/battenberg_full/probloci.txt'
+GCCORRECTPREFIX = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_wgs_gc_correction_1000g_v3/1000_genomes_GC_corr_chr_"
 
 '''
 #################################################################################################################
@@ -235,9 +240,14 @@ def generateBattenbergPipeline_CGPIT(bb_conf):
 Regular LSF pipeline versions
 #################################################################################################################
 '''
-def generateBattenbergPipeline_WGS(bb_config, pipe_exe, pipe_rerun_exe, pipe_rerun_manual_exe):
+def generateBattenbergPipeline_WGS(bb_config, pipe_exe, pipe_rerun_exe, pipe_rerun_manual_exe, no_allelecount):
 	# Write the params file
-	config_file = path.joinpath(bb_config.get_run_dir(), "params"+bb_config.get_samplename()+".txt")
+	if no_allelecount:
+		allecount_param="1"
+	else:
+		allecount_param="0"
+	
+	config_file = path.joinpath(bb_config.get_run_dir(), "params"+bb_config.get_samplename()+".txt"+" "+allecount_param)
 	bb_config.generateParamsFile_WGS(config_file)
 	
 	# Return run commands
@@ -280,9 +290,14 @@ def main(argv):
 	parser.add_argument("--min_ploidy", help="Minimum ploidy to be considered")
 	parser.add_argument("--max_ploidy", help="Maximum ploidy to be considered")
 	parser.add_argument("--min_rho", help="Minimum rho (cellularity) to be considered")
+	parser.add_argument("--max_rho", help="Maximum rho (cellularity) to be considered")
 	parser.add_argument("--min_goodness_of_fit", help="Minimum goodness of fit to be allowed")
 	parser.add_argument("--balanced_threshold", help="TODO") # TODO: explain this option 
 	parser.add_argument("--problemlocifile", help="File containing problem loci")
+	parser.add_argument("--seed", help='Seed to use')
+	parser.add_argument("--use_sv_breakpoints_file", action="store_true", help='Supply when BB should expect a file with breakpoints in its working directory')
+	parser.add_argument("--max_cn_state", help='Maximum copy number state to allow before masking is performed. Anything above this state is masked out')
+	parser.add_argument("--no_allelecount", action="store_true", help="Supply when not to run the allelecounter, for now only works with WGS and not with cgpBB")
 	
 	# SNP6 options	
 	parser.add_argument("--min_count", type=int, help="Minimum read count") # TODO: shouldn't this be added to the WGS version?? => Added to WGS, remove from SNP6 now?
@@ -310,13 +325,14 @@ def main(argv):
 	parser.set_defaults(ss=False, t=1, version="2.0.0", type="wgs", \
 					imputeinfofile=IMPUTEINFOFILE, impute_exe=IMPUTE_EXE, g1000_prefix_alleles=G1000_PREFIX, phasing_gamma=PHASING_GAMMA, \
 					segmentation_gamma=SEGMENTATION_GAMMA, clonality_dist_metric=CLONALITY_DIST_METRIC, ascat_dist_metric=ASCAT_DIST_METRIC, \
-					min_ploidy=MIN_PLOIDY, max_ploidy=MAX_PLOIDY, min_rho=MIN_RHO, min_goodness_of_fit=MIN_GOODNESS_OF_FIT, \
+					min_ploidy=MIN_PLOIDY, max_ploidy=MAX_PLOIDY, min_rho=MIN_RHO, max_rho=MAX_RHO, min_goodness_of_fit=MIN_GOODNESS_OF_FIT, \
 					balanced_threshold=BALANCED_THRESHOLD, problemlocifile=PROBLEMLOCIFILE, min_count=MIN_COUNT, fill_in_snps=FILL_IN_SNPS, \
 					heterozygous_filter=HETEROZYGOUS_FILTER, use_tumour_snps=USE_TUMOUR_SNPS, use_het_snps_only=USE_HETEROZYGOUS_SNPS_ONLY, \
 					hom_caveman_snps=HOMOZYGOUS_CAVEMAN_CALLS_FILE, use_loci_file=USE_LOCI_FILE, snppos=SNPPOS, gc_snp6=GC_SNP6, anno=ANNO_FILE, \
 					snp6_ref_info_file=SNP6_REF_INFO_FILE, birdseed_report_file=BIRDSEED_REPORT_FILE, apt_probeset_geno_exe=APT_PROBESET_GENOTYPE_EXE, \
 					apt_probeset_summ_exe=APT_PROBESET_SUMMARIZE_EXE, norm_geno_clust_exe=NORM_GENO_CLUST_EXE, genome_index=GENOME_INDEX, \
-					protocol=PROTOCOL, ignore_file=IGNORE_FILE, g1000_prefix_loci=G1000_ALLELES_PREFIX)
+					protocol=PROTOCOL, ignore_file=IGNORE_FILE, g1000_prefix_loci=G1000_ALLELES_PREFIX, seed=SEED, max_cn_state=MAX_CN_STATE, \
+					use_sv_breakpoints_file=USE_SV_BREAKPOINTS_FILE, no_allelecount=False)
 	args = parser.parse_args()
 	
 	'''
@@ -419,7 +435,7 @@ def main(argv):
 									tumour_id=tumourid, normal_id=normalid, impute_info=args.imputeinfofile, impute_exe=args.impute_exe, \
 									g1000_loci_dir=args.g1000_prefix_loci, platform_gamma=platform_gamma, phasing_gamma=args.phasing_gamma, \
 									segmentation_gamma=args.segmentation_gamma, clonality_dist_metric=args.clonality_dist_metric, min_count=args.min_count, \
-									ascat_dist_metric=args.ascat_dist_metric, min_ploidy=args.min_ploidy, max_ploidy=args.max_ploidy, \
+									ascat_dist_metric=args.ascat_dist_metric, min_ploidy=args.min_ploidy, max_ploidy=args.max_ploidy, max_rho=args.max_rho, \
 									min_rho=args.min_rho, min_goodness_of_fit=args.min_goodness_of_fit, balanced_threshold=args.balanced_threshold, \
 									prob_loci_file=args.problemlocifile, heterozygous_filter=args.heterozygous_filter, use_tumour_snps=args.use_tumour_snps, \
 									use_het_snps_only=args.use_het_snps_only, hom_caveman_file=args.hom_caveman_snps, use_loci_file=args.use_loci_file, \
@@ -427,7 +443,8 @@ def main(argv):
 									birdseed_report_file=args.birdseed_report_file, apt_probeset_geno_exe=args.apt_probeset_geno_exe, \
 									apt_probeset_summ_exe=args.apt_probeset_summ_exe, norm_geno_clust_exe=args.norm_geno_clust_exe, \
 									fill_in_snps=args.fill_in_snps, threads=args.t, genome_index=args.genome_index, protocol=args.protocol, \
-									ignore_file=args.ignore_file, g1000_alleles_dir=args.g1000_prefix_alleles)
+									ignore_file=args.ignore_file, g1000_alleles_dir=args.g1000_prefix_alleles, seed=args.seed, max_cn_state=args.max_cn_state, \
+									use_sv_breakpoints_file=args.use_sv_breakpoints_file)
 			
 			'''
 			#######################################################################
@@ -438,7 +455,7 @@ def main(argv):
 				if (args.version=="cgp"):
 					runscript = generateBattenbergPipeline_CGPIT(bb_conf)
 				else:
-					runscript, _, _ = generateBattenbergPipeline_WGS(bb_conf, pipe_exe, pipe_rerun_exe, pipe_rerun_manual_exe)
+					runscript, _, _ = generateBattenbergPipeline_WGS(bb_conf, pipe_exe, pipe_rerun_exe, pipe_rerun_manual_exe, args.no_allelecount)
 			elif (args.type == "snp6"):
 				runscript, _, _ = generateBattenbergPipeline_SNP6(bb_conf, pipe_exe, pipe_rerun_exe, pipe_rerun_manual_exe)
 

@@ -1,6 +1,8 @@
 import sys
 from util import merge_items
 
+SV_BREAKPOINTS_SUFFIX = "_sv_breakpoints.txt"
+
 # WGS cgpIT and SNP6
 class bb_pipeline_config(object):
     
@@ -9,12 +11,13 @@ class bb_pipeline_config(object):
                  gender=None, genome_index=None, impute_info=None, g1000_loci_dir=None, g1000_alleles_dir=None, \
                  prob_loci_file=None, ignore_file=None, protocol=None, threads=None, pipe_dir=None, \
                  platform_gamma=None, phasing_gamma=None, segmentation_gamma=None, clonality_dist_metric=None, \
-                 ascat_dist_metric=None, min_ploidy=None, max_ploidy=None, min_rho=None, min_goodness_of_fit=None, \
+                 ascat_dist_metric=None, min_ploidy=None, max_ploidy=None, min_rho=None, max_rho=None, min_goodness_of_fit=None, \
                  balanced_threshold=None, impute_exe=None, min_count=None, heterozygous_filter=None, \
                  fill_in_snps=None, use_tumour_snps=None, use_het_snps_only=None, hom_caveman_file=None, \
                  use_loci_file=None, snppos_file=None, gc_snp6_file=None, snp6_anno_file=None, \
                  snp6_ref_info_file=None, birdseed_report_file=None, apt_probeset_geno_exe=None, \
-                 apt_probeset_summ_exe=None, norm_geno_clust_exe=None):
+                 apt_probeset_summ_exe=None, norm_geno_clust_exe=None, seed=None, max_cn_state=None, \
+                 use_sv_breakpoints_file=None):
         
         # General
         self._pipe_type = pipe_type
@@ -34,7 +37,7 @@ class bb_pipeline_config(object):
         self._impute_exe = impute_exe
         self._impute_info = impute_info
         self._g1000_loci_dir = g1000_loci_dir
-	self._g1000_alleles_dir = g1000_alleles_dir
+        self._g1000_alleles_dir = g1000_alleles_dir
         self._prob_loci = prob_loci_file
         
         self._platform_gamma = platform_gamma
@@ -46,10 +49,14 @@ class bb_pipeline_config(object):
         self._min_ploidy = min_ploidy
         self._max_ploidy = max_ploidy
         self._min_rho = min_rho
+        self._max_rho = max_rho
         self._min_goodness_of_fit = min_goodness_of_fit
         self._balanced_threshold = balanced_threshold
         
         self._min_count = min_count
+        self._seed = seed
+        self._max_cn_state = max_cn_state
+        self._use_sv_breakpoints_file = use_sv_breakpoints_file
         
         # SNP6
         self._heterozygous_filter = heterozygous_filter
@@ -151,10 +158,17 @@ class bb_pipeline_config(object):
         fout.write("MIN_PLOIDY="+str(self._min_ploidy)+"\n")
         fout.write("MAX_PLOIDY="+str(self._max_ploidy)+"\n")
         fout.write("MIN_RHO="+str(self._min_rho)+"\n")
+        fout.write("MAX_RHO="+str(self._max_rho)+"\n")
         fout.write("MIN_GOODNESS_OF_FIT="+str(self._min_goodness_of_fit)+"\n")
         fout.write("BALANCED_THRESHOLD="+str(self._balanced_threshold)+"\n")
         fout.write("IMPUTEINFOFILE="+self._impute_info+"\n")
         fout.write("IMPUTE_EXE="+self._impute_exe+"\n")
+        fout.write("SEED="+str(self._seed)+"\n")
+        fout.write("MAX_CN_STATE="+str(self._max_cn_state)+"\n")
+        if self._use_sv_breakpoints_file:
+            fout.write("SV_BREAKPOINTS_FILE="+self._tumour_id+SV_BREAKPOINTS_SUFFIX+"\n")
+        else:
+            fout.write("SV_BREAKPOINTS_FILE=NA\n")
         
         
     def generateParamsFile_WGS(self, outfile):
@@ -172,7 +186,7 @@ class bb_pipeline_config(object):
         fout.write("PROBLEMLOCI="+self._prob_loci+"\n")
         fout.write("G1000_PREFIX="+self._g1000_alleles_dir+"\n")
         fout.write("G1000_PREFIX_AC="+self._g1000_loci_dir+"\n") # TODO: This option should be removed??
-	fout.write("MIN_NORMAL_DEPTH="+str(self._min_count)+"\n")
+        fout.write("MIN_NORMAL_DEPTH="+str(self._min_count)+"\n")
     
         fout.close()
         
