@@ -79,8 +79,11 @@ def getTumourPurity(ss):
 				if not (len(rho_and_psi) == 1):
 					print("Found different than expected number of matches for "+tumour_id)
 					continue
-				
-				sample2purity[tumour_id] = getPurityPerSample(rho_and_psi[0])
+				if path(rho_and_psi[0]).exists():
+					sample2purity[tumour_id] = getPurityPerSample(rho_and_psi[0])
+				else:
+					print("Did not find rho_and_psi file for "+tumour_id)
+					continue
 			else:
 				print("Did not find BB directory for "+tumour_id)
 				continue
