@@ -393,7 +393,15 @@ def dp_preprocessing_icgc_pipeline(samplename, vcf_file, baf_file, hap_info_pref
 	'''
 	########################################################### Dump Counts ###########################################################
 	'''
-	# Dump allele counts from the Sanger pipeline
+	# Select only the VCF from this sample
+	vcf_file = vcf_file.split(" ")
+	if len(vcf_file)>1:
+		sel = [samplename in item for item in vcf_file]
+		vcf_file = vcf_file[sel==True]
+	else:
+		vcf_file = vcf_file[0]
+
+	# Dump allele counts
 	if icgc_pipeline=="sanger":
 		cmd = createDumpCountsSangerCmd(samplename, vcf_file, run_dir)
 	elif icgc_pipeline=="dkfz":
@@ -404,13 +412,13 @@ def dp_preprocessing_icgc_pipeline(samplename, vcf_file, baf_file, hap_info_pref
 		cmd = createDumpCountsMuseCmd(samplename, vcf_file, run_dir)
 	elif icgc_pipeline=="icgc_cons":
 		cmd = createDumpCountsICGCconsensusCmd(samplename, vcf_file, run_dir)
-	outf.write(generateBsubCmd("dumpCounts_"+samplename, log_dir, cmd, queue="normal", mem=10, depends=None, isArray=False) + "\n")
+	outf.write(generateBsubCmd("dumpCounts_"+samplename, log_dir, cmd, queue="basement", mem=10, depends=None, isArray=False) + "\n")
 	
 	'''
 	########################################################### Generate DP input ###########################################################
 	'''
 	cmd = createDpInputCmd(samplename, samplename+afloci_file_postfix, samplename+"_alleleFrequency.txt", subclone_file, rho_psi_file, "NA", "NA", gender, bb_dir, run_dir)
-	outf.write(generateBsubCmd("dpIn_"+samplename, log_dir, cmd, queue="basement", mem=10, depends=[dpin_depends_on, "dumpCounts_"+samplename], isArray=False) + "\n")
+	outf.write(generateBsubCmd("dpIn_"+samplename, log_dir, cmd, queue="normal", mem=2, depends=[dpin_depends_on, "dumpCounts_"+samplename], isArray=False) + "\n")
 
 	'''
 	########################################################### DP input to VCF ###########################################################
