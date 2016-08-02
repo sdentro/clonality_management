@@ -68,8 +68,9 @@ MAX_CN_STATE=250
 
 IMPUTE_EXE='impute2' #/lustre/scratch110/sanger/sd11/epitax/battenberg/PD7404a/impute_v2.2.2_x86_64_static/impute2'
 IMPUTEINFOFILE='/lustre/scratch116/casm/cgp/pancancer/reference/battenberg_full/impute/impute_info.txt'
-G1000_PREFIX="/lustre/scratch116/casm/cgp/pancancer/reference/battenberg_full/1000genomesloci/1000genomesloci2012_chr"
-G1000_ALLELES_PREFIX="/lustre/scratch116/casm/cgp/pancancer/reference/battenberg_full/1000genomesloci/1000genomesAlleles2012_chr"
+# This is a little confusing, but the allele counter needs the loci while the later steps need the alleles
+G1000_ALLELES_PREFIX="/lustre/scratch116/casm/cgp/pancancer/reference/battenberg_full/1000genomesloci/1000genomesloci2012_chr"
+G1000_PREFIX="/lustre/scratch116/casm/cgp/pancancer/reference/battenberg_full/1000genomesloci/1000genomesAlleles2012_chr"
 PROBLEMLOCIFILE='/lustre/scratch116/casm/cgp/pancancer/reference/battenberg_full/probloci.txt'
 GCCORRECTPREFIX = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_wgs_gc_correction_1000g_v3/1000_genomes_GC_corr_chr_"
 
@@ -247,11 +248,11 @@ def generateBattenbergPipeline_WGS(bb_config, pipe_exe, pipe_rerun_exe, pipe_rer
 	else:
 		allecount_param="0"
 	
-	config_file = path.joinpath(bb_config.get_run_dir(), "params"+bb_config.get_samplename()+".txt"+" "+allecount_param)
+	config_file = path.joinpath(bb_config.get_run_dir(), "params"+bb_config.get_samplename()+".txt")
 	bb_config.generateParamsFile_WGS(config_file)
 	
 	# Return run commands
-	return (pipe_exe+' '+config_file), (pipe_rerun_exe+' '+config_file), (pipe_rerun_manual_exe+' '+config_file)
+	return (pipe_exe+' '+config_file+' '+allecount_param), (pipe_rerun_exe+' '+config_file+' '+allecount_param), (pipe_rerun_manual_exe+' '+config_file+' '+allecount_param)
 	
 def generateBattenbergPipeline_SNP6(bb_config, pipe_exe, pipe_rerun_exe, pipe_rerun_manual_exe):
 	# Write the params file
@@ -283,6 +284,7 @@ def main(argv):
 	parser.add_argument("--impute_exe", help='Path to impute exe')
 	parser.add_argument("--g1000_prefix_alleles", help='Prefix to 1000 Genomes alleles reference files')
 	parser.add_argument("--g1000_prefix_loci", help='Prefix to 1000 Genomes loci reference files')
+	parser.add_argument("--gc_correction_prefix", help='Prefix to GC correction reference files')
 	parser.add_argument("--phasing_gamma", help="Phasing gamma parameter")
 	parser.add_argument("--segmentation_gamma", help="Phasing segmentation parameter")
 	parser.add_argument("--clonality_dist_metric", help="Type of distance metric used when fitting the clonal copy number profile")
@@ -332,7 +334,7 @@ def main(argv):
 					snp6_ref_info_file=SNP6_REF_INFO_FILE, birdseed_report_file=BIRDSEED_REPORT_FILE, apt_probeset_geno_exe=APT_PROBESET_GENOTYPE_EXE, \
 					apt_probeset_summ_exe=APT_PROBESET_SUMMARIZE_EXE, norm_geno_clust_exe=NORM_GENO_CLUST_EXE, genome_index=GENOME_INDEX, \
 					protocol=PROTOCOL, ignore_file=IGNORE_FILE, g1000_prefix_loci=G1000_ALLELES_PREFIX, seed=SEED, max_cn_state=MAX_CN_STATE, \
-					use_sv_breakpoints_file=USE_SV_BREAKPOINTS_FILE, no_allelecount=False)
+					use_sv_breakpoints_file=USE_SV_BREAKPOINTS_FILE, no_allelecount=False, gc_correction_prefix=GCCORRECTPREFIX)
 	args = parser.parse_args()
 	
 	'''
@@ -444,7 +446,7 @@ def main(argv):
 									apt_probeset_summ_exe=args.apt_probeset_summ_exe, norm_geno_clust_exe=args.norm_geno_clust_exe, \
 									fill_in_snps=args.fill_in_snps, threads=args.t, genome_index=args.genome_index, protocol=args.protocol, \
 									ignore_file=args.ignore_file, g1000_alleles_dir=args.g1000_prefix_alleles, seed=args.seed, max_cn_state=args.max_cn_state, \
-									use_sv_breakpoints_file=args.use_sv_breakpoints_file)
+									use_sv_breakpoints_file=args.use_sv_breakpoints_file, gc_correction_prefix=args.gc_correction_prefix)
 			
 			'''
 			#######################################################################

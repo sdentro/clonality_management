@@ -17,7 +17,7 @@ class bb_pipeline_config(object):
                  use_loci_file=None, snppos_file=None, gc_snp6_file=None, snp6_anno_file=None, \
                  snp6_ref_info_file=None, birdseed_report_file=None, apt_probeset_geno_exe=None, \
                  apt_probeset_summ_exe=None, norm_geno_clust_exe=None, seed=None, max_cn_state=None, \
-                 use_sv_breakpoints_file=None):
+                 use_sv_breakpoints_file=None, gc_correction_prefix=None):
         
         # General
         self._pipe_type = pipe_type
@@ -38,6 +38,7 @@ class bb_pipeline_config(object):
         self._impute_info = impute_info
         self._g1000_loci_dir = g1000_loci_dir
         self._g1000_alleles_dir = g1000_alleles_dir
+        self._gc_correction_prefix = gc_correction_prefix
         self._prob_loci = prob_loci_file
         
         self._platform_gamma = platform_gamma
@@ -186,6 +187,7 @@ class bb_pipeline_config(object):
         fout.write("PROBLEMLOCI="+self._prob_loci+"\n")
         fout.write("G1000_PREFIX="+self._g1000_alleles_dir+"\n")
         fout.write("G1000_PREFIX_AC="+self._g1000_loci_dir+"\n") # TODO: This option should be removed??
+        fout.write("GCCORRECTPREFIX="+self._gc_correction_prefix+"\n")
         fout.write("MIN_NORMAL_DEPTH="+str(self._min_count)+"\n")
     
         fout.close()
