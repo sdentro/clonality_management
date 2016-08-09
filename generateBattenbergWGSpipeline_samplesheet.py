@@ -24,6 +24,8 @@ Pipeline BB setup - WGS
 '''
 PLATFORM_GAMMA_WGS=1
 MIN_COUNT=10 # TODO: should this be removed from SNP6?
+PROBLEMLOCIFILE='/lustre/scratch116/casm/cgp/pancancer/reference/battenberg_full/probloci.txt'
+GCCORRECTPREFIX = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_wgs_gc_correction_1000g_v3_noNA/1000_genomes_GC_corr_chr_"
 
 '''
 #################################################################################################################
@@ -71,8 +73,6 @@ IMPUTEINFOFILE='/lustre/scratch116/casm/cgp/pancancer/reference/battenberg_full/
 # This is a little confusing, but the allele counter needs the loci while the later steps need the alleles
 G1000_ALLELES_PREFIX="/lustre/scratch116/casm/cgp/pancancer/reference/battenberg_full/1000genomesloci/1000genomesloci2012_chr"
 G1000_PREFIX="/lustre/scratch116/casm/cgp/pancancer/reference/battenberg_full/1000genomesloci/1000genomesAlleles2012_chr"
-PROBLEMLOCIFILE='/lustre/scratch116/casm/cgp/pancancer/reference/battenberg_full/probloci.txt'
-GCCORRECTPREFIX = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_wgs_gc_correction_1000g_v3/1000_genomes_GC_corr_chr_"
 
 '''
 #################################################################################################################

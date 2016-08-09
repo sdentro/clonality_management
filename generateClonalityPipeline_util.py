@@ -236,9 +236,9 @@ def generateBsubCmd(jobname, logdir, cmd, queue="normal", mem=1, depends=None, i
     bcmd = merge_items(["bsub","-q", queue, "-J \""+jobname+"\""])
     
     if isArray:
-        bcmd = merge_items([bcmd, "-o", path.joinpath(logdir, jobname)+".%J.%I.out", "-e", path.joinpath(logdir, jobname+".%J.%I.err")])
+        bcmd = merge_items([bcmd, "-o", path.joinpath(logdir, jobname)+".%J.%I.out"])
     else:
-        bcmd = merge_items([bcmd, "-o", path.joinpath(logdir, jobname)+".%J.out", "-e", path.joinpath(logdir, jobname+".%J.err")])
+        bcmd = merge_items([bcmd, "-o", path.joinpath(logdir, jobname)+".%J.out"])
 
     mem = str(mem)+"000"
     bcmd = merge_items([bcmd, "-M", mem, "-R", "'span[hosts=1] select[mem>" + mem + "] rusage[mem=" + mem + "]'"])
