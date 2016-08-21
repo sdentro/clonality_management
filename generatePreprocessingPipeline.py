@@ -32,14 +32,19 @@ no_chroms = len(r)
 # TODO: Hardcoded for human, should change
 no_aut_chroms = no_chroms - sum([item == "X" or item == "Y" for item in r])
 
-def createGenerateAFLociCmd(samplename, outfile_postfix, vcf_file, run_dir):
-	return(merge_items([DPP_SCRIPT, "-c generateAFLoci",
+def createGenerateAFLociCmd(samplename, outfile_postfix, vcf_file, run_dir, dummy_alt_allele=None, dummy_ref_allele=None):
+	cmd = merge_items([DPP_SCRIPT, "-c generateAFLoci",
 						"-s", samplename,
 						"-o", samplename+outfile_postfix,
 						"-v", vcf_file,
 						"-f", CHROMS_FAI,
 						"-i", IGNORE_FILE,
-						"-r", run_dir]))
+						"-r", run_dir])
+	if not dummy_alt_allele==None:
+		cmd = merge_items([cmd, "--dummy_alt_allele", dummy_alt_allele])
+	if not dummy_ref_allele==None:
+		cmd = merge_items([cmd, "--dummy_ref_allele", dummy_ref_allele])
+	return(cmd)
 	
 def createFilterForDeaminaseCmd(samplename, loci_file, outfile_postfix, run_dir):
 	return(merge_items([DPP_SCRIPT, "-c filterForDeaminase",
@@ -111,6 +116,13 @@ def createDumpCountsICGCconsensusCmd(samplename, vcf_file, run_dir):
 						"-r", run_dir,
 						"-o", samplename+"_alleleFrequency.txt"]))
 	
+def createDumpCountsICGCconsensusIndelCmd(samplename, vcf_file, run_dir):
+		return(merge_items([DPP_SCRIPT, "-c dumpCountsICGCconsensusIndel",
+						"-s", samplename,
+						"-v", vcf_file,
+						"-r", run_dir,
+						"-o", samplename+"_alleleIndelFrequency.txt"]))
+	
 def createDumpCountsMutectCmd(samplename, vcf_file, run_dir):
 	return(merge_items([DPP_SCRIPT, "-c dumpCountsMutect",
 						"-s", samplename,
@@ -164,7 +176,7 @@ def createMutCnPhasingCmd(samplename, loci_file_prefix, baf_file, hap_info_prefi
 						"-b", bb_dir,
 						"-r", run_dir]))
 	
-def createDpInputCmd(samplename, loci_file, allele_freq_file, subclone_file, rho_psi_file, mut_mut_phase_file, mut_cn_phase_file, gender, bb_dir, run_dir):
+def createDpInputCmd(samplename, loci_file, allele_freq_file, subclone_file, rho_psi_file, mut_mut_phase_file, mut_cn_phase_file, output_file, gender, bb_dir, run_dir):
 	return(merge_items([DPP_SCRIPT, "-c dpInput",
 						"-s", samplename,
 						"--loci", loci_file,
@@ -174,7 +186,7 @@ def createDpInputCmd(samplename, loci_file, allele_freq_file, subclone_file, rho
 						"--mut_mut", mut_mut_phase_file,
 						"--mut_cn", mut_cn_phase_file,
 						"-x", gender,
-						"-o", samplename+"_allDirichletProcessInfo.txt",
+						"-o", output_file,
 						"-b", bb_dir,
 						"-r", run_dir]))
 	
@@ -358,13 +370,13 @@ def dp_preprocessing_pipeline(samplename, vcf_file, bam_file, bai_file, baf_file
 	########################################################### Generate DP input ###########################################################
 	'''
 	if do_phasing:
-		cmd = createDpInputCmd(samplename, samplename+afloci_file_postfix, samplename+"_alleleFrequency.txt", subclone_file, rho_psi_file, samplename+"_phasedmuts.txt", samplename+"_phasedmutCN.txt", gender, bb_dir, run_dir)
+		cmd = createDpInputCmd(samplename, samplename+afloci_file_postfix, samplename+"_alleleFrequency.txt", subclone_file, rho_psi_file, samplename+"_phasedmuts.txt", samplename+"_phasedmutCN.txt", samplename+"_allDirichletProcessInfo.txt", gender, bb_dir, run_dir)
 		if split_chroms:
 			outf.write(generateBsubCmd("dpIn_"+samplename, log_dir, cmd, queue="normal", mem=2, depends=["concCounts_"+samplename, "concMMP_"+samplename, "concMCP_"+samplename], isArray=False) + "\n")
 		else:
 			outf.write(generateBsubCmd("dpIn_"+samplename, log_dir, cmd, queue="normal", mem=2, depends=["allCount_"+samplename, "mmp_"+samplename, "concMCP_"+samplename], isArray=False) + "\n")
 	else:
-		cmd = createDpInputCmd(samplename, samplename+afloci_file_postfix, samplename+"_alleleFrequency.txt", subclone_file, rho_psi_file, "NA", "NA", gender, bb_dir, run_dir)
+		cmd = createDpInputCmd(samplename, samplename+afloci_file_postfix, samplename+"_alleleFrequency.txt", subclone_file, rho_psi_file, "NA", "NA", samplename+"_allDirichletProcessInfo.txt", gender, bb_dir, run_dir)
 		depends = ["allCount_"+samplename, "loci_"+samplename]
 		if filter_deaminase:
 			depends = [depends, "filterDeaminase_"+samplename]
@@ -449,7 +461,7 @@ def dp_preprocessing_icgc_pipeline(samplename, vcf_file, baf_file, hap_info_pref
 	'''
 	########################################################### Generate DP input ###########################################################
 	'''
-	cmd = createDpInputCmd(samplename, samplename+afloci_file_postfix, samplename+"_alleleFrequency.txt", subclone_file, rho_psi_file, "NA", "NA", gender, bb_dir, run_dir)
+	cmd = createDpInputCmd(samplename, samplename+afloci_file_postfix, samplename+"_alleleFrequency.txt", subclone_file, rho_psi_file, "NA", "NA", samplename+"_allDirichletProcessInfo.txt", gender, bb_dir, run_dir)
 	outf.write(generateBsubCmd("dpIn_"+samplename, log_dir, cmd, queue="normal", mem=2, depends=[dpin_depends_on, "dumpCounts_"+samplename], isArray=False) + "\n")
 
 	'''
@@ -464,6 +476,54 @@ def dp_preprocessing_icgc_pipeline(samplename, vcf_file, baf_file, hap_info_pref
 	cmd = createDpIn2VcfCmd(vcf_file, path.joinpath(run_dir,samplename+"_allDirichletProcessInfo.txt"), path.joinpath(run_dir, samplename+".dpIn.vcf"), fai_file, ignore_file)
 	outf.write(generateBsubCmd("dpIn2Vcf_"+samplename, log_dir, cmd, queue="normal", mem=2, depends=["kataegis_"+samplename], isArray=False) + "\n")
 	
+	outf.close()
+	
+	# Make executable
+	st = os.stat(runscript)
+	os.chmod(runscript, st.st_mode | stat.S_IEXEC)
+	
+	return(runscript)
+
+def dp_preprocessing_icgc_indel_pipeline(samplename, vcf_file, baf_file, hap_info_prefix, hap_info_suffix, subclone_file, rho_psi_file, fai_file, ignore_file, gender, bb_dir, log_dir, run_dir, icgc_pipeline, filter_deaminase):
+	'''
+	Simple pipeline for ICGC indels	
+	'''
+	# Setup a pipeline script for this sample
+	runscript = path.joinpath(run_dir, "RunCommands_"+samplename+".sh")
+	outf = open(runscript, 'w')
+	
+	# Set output names of the various steps
+	# If the pipeline is to be run in splits per chromosome output files should be named different
+	afloci_file_postfix = "_indelloci.txt"
+	
+	'''
+	########################################################### Get loci ###########################################################
+	'''
+	# Generate the loci file from vcf
+	cmd = createGenerateAFLociCmd(samplename, afloci_file_postfix, vcf_file, run_dir, dummy_alt_allele="A", dummy_ref_allele="C")
+	outf.write(generateBsubCmd("loci_"+samplename, log_dir, cmd, queue="normal", mem=1, depends=None, isArray=False) + "\n")
+	dpin_depends_on = "loci_"+samplename
+	
+	'''
+	########################################################### Dump Counts ###########################################################
+	'''
+	# Select only the VCF from this sample
+	vcf_file = vcf_file.split(" ")
+	if len(vcf_file)>1:
+		sel = [samplename in item for item in vcf_file]
+		vcf_file = vcf_file[sel==True]
+	else:
+		vcf_file = vcf_file[0]
+
+	cmd = createDumpCountsICGCconsensusIndelCmd(samplename, vcf_file, run_dir)
+	outf.write(generateBsubCmd("dumpCounts_"+samplename, log_dir, cmd, queue="basement", mem=10, depends=None, isArray=False) + "\n")
+	
+	'''
+	########################################################### Generate DP input ###########################################################
+	'''
+	cmd = createDpInputCmd(samplename, samplename+afloci_file_postfix, samplename+"_alleleIndelFrequency.txt", subclone_file, rho_psi_file, "NA", "NA", samplename+"_indelDpInput.txt", gender, bb_dir, run_dir)
+	outf.write(generateBsubCmd("dpIn_"+samplename, log_dir, cmd, queue="normal", mem=2, depends=[dpin_depends_on, "dumpCounts_"+samplename], isArray=False) + "\n")
+
 	outf.close()
 	
 	# Make executable
