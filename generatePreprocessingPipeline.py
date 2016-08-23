@@ -116,12 +116,14 @@ def createDumpCountsICGCconsensusCmd(samplename, vcf_file, run_dir):
 						"-r", run_dir,
 						"-o", samplename+"_alleleFrequency.txt"]))
 	
-def createDumpCountsICGCconsensusIndelCmd(samplename, vcf_file, run_dir):
+def createDumpCountsICGCconsensusIndelCmd(samplename, vcf_file, run_dir, dummy_alt_allele, dummy_ref_allele):
 		return(merge_items([DPP_SCRIPT, "-c dumpCountsICGCconsensusIndel",
 						"-s", samplename,
 						"-v", vcf_file,
 						"-r", run_dir,
-						"-o", samplename+"_alleleIndelFrequency.txt"]))
+						"-o", samplename+"_alleleIndelFrequency.txt",
+						"--dummy_alt_allele", dummy_alt_allele,
+						"--dummy_ref_allele", dummy_ref_allele]))
 	
 def createDumpCountsMutectCmd(samplename, vcf_file, run_dir):
 	return(merge_items([DPP_SCRIPT, "-c dumpCountsMutect",
@@ -484,12 +486,12 @@ def dp_preprocessing_icgc_pipeline(samplename, vcf_file, baf_file, hap_info_pref
 	
 	return(runscript)
 
-def dp_preprocessing_icgc_indel_pipeline(samplename, vcf_file, baf_file, hap_info_prefix, hap_info_suffix, subclone_file, rho_psi_file, fai_file, ignore_file, gender, bb_dir, log_dir, run_dir, icgc_pipeline, filter_deaminase):
+def dp_preprocessing_icgc_indel_pipeline(samplename, vcf_file, subclone_file, rho_psi_file, fai_file, ignore_file, gender, bb_dir, log_dir, run_dir):
 	'''
 	Simple pipeline for ICGC indels	
 	'''
 	# Setup a pipeline script for this sample
-	runscript = path.joinpath(run_dir, "RunCommands_"+samplename+".sh")
+	runscript = path.joinpath(run_dir, "RunCommands_indel_"+samplename+".sh")
 	outf = open(runscript, 'w')
 	
 	# Set output names of the various steps
@@ -515,7 +517,7 @@ def dp_preprocessing_icgc_indel_pipeline(samplename, vcf_file, baf_file, hap_inf
 	else:
 		vcf_file = vcf_file[0]
 
-	cmd = createDumpCountsICGCconsensusIndelCmd(samplename, vcf_file, run_dir)
+	cmd = createDumpCountsICGCconsensusIndelCmd(samplename, vcf_file, run_dir, dummy_alt_allele="A", dummy_ref_allele="C")
 	outf.write(generateBsubCmd("dumpCounts_"+samplename, log_dir, cmd, queue="basement", mem=10, depends=None, isArray=False) + "\n")
 	
 	'''
@@ -632,6 +634,7 @@ def main(argv):
 	parser.add_argument("--phasing_pipeline", action="store_true", help="Generate the phasing only pipeline")
 	parser.add_argument("--icgc_pipeline", action="store_true", help="Generate ICGC pipeline")
 	parser.add_argument("--cndpin_pipeline", action="store_true", help="Generate the copy number DP input pipeline")
+	parser.add_argument("--indel_pipeline", action="store_true", help="Generate the indel DP input pipeline")
 	
 	# Additional variables
 	parser.add_argument("--phasing", action="store_true", help="Perform phasing")
@@ -644,15 +647,15 @@ def main(argv):
 	parser.add_argument("--broad", action="store_true", help="Run preprocessing on the ICGC Broad pipeline output")
 	parser.add_argument("--dkfz", action="store_true", help="Run preprocessing on the ICGC DKFZ pipeline output")
 	parser.add_argument("--muse", action="store_true", help="Run preprocessing on the ICGC Muse caller output")
-	parser.add_argument("--filter_deaminase", action="store_true", help="Only keep deaminase mutations")
 	parser.add_argument("--mutect", action="store_true", help="Do not perform allele counting, but dump counts from a Mutect VCF file")
+	parser.add_argument("--filter_deaminase", action="store_true", help="Only keep deaminase mutations")
 
 	# Parameters
 	parser.add_argument("--min_baq", type=int, help="Minimum BAQ for a base to be included")
 	parser.add_argument("--min_maq", type=int, help="Minimum MAQ for a base to be included")
 	parser.add_argument("--max_distance", type=int, help="Maximum distance for a pair of mutations to be considered for phasing. Use when either mut_mut or mut_cn phasing")
 	
-	parser.set_defaults(min_baq=10, min_maq=10, max_distance=700, debug=False, f=CHROMS_FAI, i=IGNORE_FILE, ip=IGNORE_FILE_PHASE, split_chroms=False, icgc=False, sanger=False, dkfz=False, broad=False, muse=False, filter_deaminase=False, mutect=False)
+	parser.set_defaults(min_baq=10, min_maq=10, max_distance=700, debug=False, f=CHROMS_FAI, i=IGNORE_FILE, ip=IGNORE_FILE_PHASE, split_chroms=False, icgc=False, sanger=False, dkfz=False, broad=False, muse=False, filter_deaminase=False, mutect=False, indel_pipeline=False)
 	
 	args = parser.parse_args()
 	
@@ -686,8 +689,7 @@ def main(argv):
 			if donor==samples[j][0] and i!=j:
 				vcf_file = vcf_file + [samples[j][2]]
 		vcf_file = " ".join(vcf_file)
-
-		#vcf_file = samples[i][2]
+		
 		bam_file = samples[i][3]
 		bai_file = samples[i][4]
 		bb_dir = samples[i][5]
@@ -697,7 +699,17 @@ def main(argv):
 		rho_psi_file = samples[i][9]
 		hap_info_prefix = samples[i][10]
 		hap_info_suffix = samples[i][11]
-	
+
+		# Fetch all indel vcf files from this donor, in case of multi-sample case		
+		if len(samples[i]) > 11:
+			indel_vcf_file = [samples[i][12]]
+			for j in range(0, len(samples)):
+				if donor==samples[j][0] and i!=j:
+					indel_vcf_file = indel_vcf_file + [samples[j][12]]
+			indel_vcf_file = " ".join(indel_vcf_file)
+		else:
+			indel_vcf_file = None
+		
 		run_dir = path.joinpath(args.r, samplename)
 		log_dir = path.joinpath(run_dir, "logs")
 		
@@ -768,6 +780,18 @@ def main(argv):
 												bb_dir=bb_dir, 
 												log_dir=log_dir, 
 												run_dir=run_dir)
+		elif (args.indel_pipeline):
+			assert indel_vcf_file is not None, "Indel VCF column in preproc input file must be defined when running indel pipeline"
+			runscript = dp_preprocessing_icgc_indel_pipeline(samplename=samplename, 
+															vcf_file=indel_vcf_file, 
+															subclone_file=subclone_file, 
+															rho_psi_file=rho_psi_file, 
+															fai_file=args.f, 
+															ignore_file=args.i, 
+															gender=gender, 
+															bb_dir=bb_dir, 
+															log_dir=log_dir, 
+															run_dir=run_dir)	
 			
 		else:
 			# Full pipeline that does allele counting and phasing

@@ -3,7 +3,7 @@
 import sys, argparse
 from util import merge_items, read_list_of_items
 
-def generateSamplesheet(samplename_file, tumour_file, tumourid_file, normal_file, normalid_file, gender_file, bb_file, variants_file, output_file):
+def generateSamplesheet(samplename_file, tumour_file, tumourid_file, normal_file, normalid_file, gender_file, bb_file, variants_file, output_file, vcf_indel):
     """
     Takes various single column files and generates a samplesheet. The i'th row of each of these files will be
     joined together (as if the Unix command line paste was called).
@@ -15,6 +15,7 @@ def generateSamplesheet(samplename_file, tumour_file, tumourid_file, normal_file
     normals = read_list_of_items(normal_file)
     normal_ids = read_list_of_items(normalid_file)
     genders = read_list_of_items(gender_file)
+    vcf_indel = read_list_of_items(vcf_indel)
     # BB is optional (could be ran after creation of this project. Set default placeholder if this is the case
     if not bb_file is None:
         bb = read_list_of_items(bb_file)
@@ -24,7 +25,7 @@ def generateSamplesheet(samplename_file, tumour_file, tumourid_file, normal_file
     
     # Write the output, joining line i from all vectors together
     outf = open(output_file, 'w')
-    outf.write(merge_items(["#sample","tumour_id","tumour","normal_id","normal","bb_dir","gender","variants"], sep="\t")+"\n")
+    outf.write(merge_items(["#sample","tumour_id","tumour","normal_id","normal","bb_dir","gender","variants","indels"], sep="\t")+"\n")
     for i in range(0, len(samplenames)):
         outf.write(merge_items([samplenames[i],
                                 tumour_ids[i],
@@ -33,7 +34,8 @@ def generateSamplesheet(samplename_file, tumour_file, tumourid_file, normal_file
                                 normals[i],
                                 bb[i],
                                 genders[i],
-                                variants[i]], sep="\t")+"\n")
+                                variants[i],
+                                vcf_indel[i]], sep="\t")+"\n")
         
     outf.close()
 
@@ -45,13 +47,14 @@ def main(argv):
     parser.add_argument("--bn", required=True, type=str, help="File containing list of normal BAM files")
     parser.add_argument("--idt", required=True, type=str, help="File containing list of tumour IDs")
     parser.add_argument("--idn", required=True, type=str, help="File containing list of normal IDs")
-    parser.add_argument("-v", required=True, type=str, help="File containing list of VCF files")
+    parser.add_argument("-v", required=True, type=str, help="File containing list of SNV VCF files")
     parser.add_argument("-x", required=True, type=str, help="File containing list of genders for each samplename")
     parser.add_argument("-o", required=True, type=str, help="Output file")
-    parser.add_argument("-b", required=True, type=str, help="Full path to file containing list of Battenberg directories")    
+    parser.add_argument("-b", required=True, type=str, help="Full path to file containing list of Battenberg directories")  
+    parser.add_argument("--vcf_indel", required=True, type=str, help="File containing list of indel VCF files")
     
     args = parser.parse_args()
-    generateSamplesheet(args.s, args.bt, args.idt, args.bn, args.idn, args.x, args.b, args.v, args.o)
+    generateSamplesheet(args.s, args.bt, args.idt, args.bn, args.idn, args.x, args.b, args.v, args.o, args.vcf_indel)
     
 if __name__ == '__main__':
     main(sys.argv[0:])
