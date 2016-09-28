@@ -116,12 +116,14 @@ def main(argv):
 	parser = argparse.ArgumentParser(prog='GenerateDPDataFile',
 							 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 	parser.add_argument("-i", required=True, type=str, help="Full path to a sample sheet")
-	parser.add_argument("-d", required=True, type=str, help="Full path to where Dirichlet input files are stored")
-	parser.add_argument("-r", required=True, type=str, help="Full path to directory where the pipeline is going to be run.")
+	parser.add_argument("-d", type=str, help="Full path to where Dirichlet input files are stored")
+	parser.add_argument("-r", type=str, help="Full path to directory where the pipeline is going to be run.")
 	parser.add_argument("-p", required=True, type=str, help="Name of the project.")
 #	 parser.add_argument("--no_iters", type=int, help="Number of iterations the 1D DP has to run.")
 #	 parser.add_argument("--no_iters_burn_in", type=int, help="Number of iterations used for burn in.")
-	
+
+	parser.set_defaults(d="dirichlet_input/", r="dirichlet/")
+
 	args = parser.parse_args()
 	generateDPDataFile(args.p, args.i, args.d, args.r)
 	
