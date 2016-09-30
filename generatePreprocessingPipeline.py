@@ -381,9 +381,9 @@ def dp_preprocessing_pipeline(samplename, vcf_file, bam_file, bai_file, baf_file
 		cmd = createDpInputCmd(samplename, samplename+afloci_file_postfix, samplename+"_alleleFrequency.txt", subclone_file, rho_psi_file, "NA", "NA", samplename+"_allDirichletProcessInfo.txt", gender, bb_dir, run_dir)
 		depends = ["allCount_"+samplename, "loci_"+samplename]
 		if filter_deaminase:
-			depends = [depends, "filterDeaminase_"+samplename]
+			depends.extend(["filterDeaminase_"+samplename])
 		if split_chroms:
-			depends = [depends, "concCounts_"+samplename]
+			depends.extend(["concCounts_"+samplename])
 		outf.write(generateBsubCmd("dpIn_"+samplename, log_dir, cmd, queue="normal", mem=2, depends=depends, isArray=False) + "\n")
 
 	'''
