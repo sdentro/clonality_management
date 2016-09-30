@@ -382,6 +382,8 @@ def dp_preprocessing_pipeline(samplename, vcf_file, bam_file, bai_file, baf_file
 		depends = ["allCount_"+samplename, "loci_"+samplename]
 		if filter_deaminase:
 			depends = [depends, "filterDeaminase_"+samplename]
+		if split_chroms:
+			depends = [depends, "concCounts_"+samplename]
 		outf.write(generateBsubCmd("dpIn_"+samplename, log_dir, cmd, queue="normal", mem=2, depends=depends, isArray=False) + "\n")
 
 	'''
