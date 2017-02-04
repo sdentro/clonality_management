@@ -60,7 +60,7 @@ def main(argv):
     parser.add_argument("-r", type=str, required=True, help="Full path to a directory where the pipelines will be ran")
     parser.add_argument("-l", type=str, help="Loci prefix")
     parser.add_argument("--l_postfix", type=str, help="Loci file postfix")
-    parser.set_defaults(l_postfix=".txt", l="/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_1000genomesloci2012_v3/1000genomesloci2012_chr")
+    parser.set_defaults(l_postfix=".txt", l="/lustre/scratch116/casm/cgp/pancancer/reference/battenberg_full/1000genomesloci/1000genomesloci2012_chr")
     
     args = parser.parse_args()
 

@@ -8,7 +8,7 @@ PERL = 'perl-5.16.3 -I /software/CGP/pancan/lib/perl5'
 ALLELECOUNTER = '/software/CGP/pancan/bin/alleleCounter.pl'
 ALLELECOUNTER_BAQ = 1
 ALLELECOUNTER_MAQ = 1
-G1000LOCI = '/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_1000genomesloci2012/1000genomesloci2012_chr$LSB_JOBINDEX.txt'
+G1000LOCI = '/lustre/scratch116/casm/cgp/pancancer/reference/battenberg_full/1000genomesloci/1000genomesAlleles2012_chr$LSB_JOBINDEX.txt'
 
 # generateDPInput
 GETDIRICHLETPROCESINFO_SCRIPT = "~/repo/dirichlet/GetDirichletProcessInfo.R"

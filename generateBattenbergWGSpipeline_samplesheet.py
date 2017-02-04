@@ -25,7 +25,7 @@ Pipeline BB setup - WGS
 PLATFORM_GAMMA_WGS=1
 MIN_COUNT=10 # TODO: should this be removed from SNP6?
 PROBLEMLOCIFILE='/lustre/scratch116/casm/cgp/pancancer/reference/battenberg_full/probloci.txt'
-GCCORRECTPREFIX = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_wgs_gc_correction_1000g_v3_noNA/1000_genomes_GC_corr_chr_"
+GCCORRECTPREFIX = "/lustre/scratch116/casm/team113/sd11/reference/GenomeFiles/battenberg_wgs_gc_correction_1000g_v3_noNA/1000_genomes_GC_corr_chr_"
 
 '''
 #################################################################################################################
@@ -42,8 +42,8 @@ PLATFORM_GAMMA_SNP6=0.55
 
 SNPPOS="/lustre/scratch112/sanger/cancer_external/DBGap/TCGA_phs000178.v8.p7/analysis/ASCAT/pvl/PRAD/SNPpos.txt"
 GC_SNP6="/lustre/scratch112/sanger/cancer_external/DBGap/TCGA_phs000178.v8.p7/analysis/ASCAT/pvl/PRAD/GC_SNP6.txt"
-ANNO_FILE="/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_snp6/GenomeWideSNP_6.na32.annot.subset.csv"
-SNP6_REF_INFO_FILE="/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_snp6/snp6_ref_info_file.txt"
+ANNO_FILE="/lustre/scratch116/casm/team113/sd11/reference/GenomeFiles/battenberg_snp6/GenomeWideSNP_6.na32.annot.subset.csv"
+SNP6_REF_INFO_FILE="/lustre/scratch116/casm/team113/sd11/reference/GenomeFiles/battenberg_snp6/snp6_ref_info_file.txt"
 BIRDSEED_REPORT_FILE="birdseed.report.txt"
 APT_PROBESET_GENOTYPE_EXE="~pvl/PennCNV/apt-1.12.0-20091012-i386-intel-linux/bin/apt-probeset-genotype"
 APT_PROBESET_SUMMARIZE_EXE="~pvl/PennCNV/apt-1.12.0-20091012-i386-intel-linux/bin/apt-probeset-summarize"

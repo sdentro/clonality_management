@@ -5,11 +5,11 @@ from path import path
 from util import merge_items, run_command
 from generateClonalityPipeline_util import generateBsubCmd, writeSimpleShellScript
 
-samplename = "PD7404a"
-bam_file = "/lustre/scratch110/sanger/sd11/epitax/bam/PD7404a.bam"
-bai_file = "/lustre/scratch110/sanger/sd11/epitax/bam/PD7404a.bam.bai"
-vcf_file = "/lustre/scratch110/sanger/sd11/epitax/variants/filtered_vcf/PD7404a.filt.vcf.gz"
-run_dir = "/nfs/users/nfs_s/sd11/repo/dirichlet_preprocessing/test/PD7404a/"
+#samplename = "PD7404a"
+#bam_file = "/lustre/scratch110/sanger/sd11/epitax/bam/PD7404a.bam"
+#bai_file = "/lustre/scratch110/sanger/sd11/epitax/bam/PD7404a.bam.bai"
+#vcf_file = "/lustre/scratch110/sanger/sd11/epitax/variants/filtered_vcf/PD7404a.filt.vcf.gz"
+#run_dir = "/nfs/users/nfs_s/sd11/repo/dirichlet_preprocessing/test/PD7404a/"
 
 PIPE_DIR = "/nfs/users/nfs_s/sd11/software/pipelines/dirichlet_preprocessing_v1.0"
 #DPPVCF_SCRIPT = "python /nfs/users/nfs_s/sd11/software/pipelines/dirichlet_preprocessing_v1.0/dpIn2vcf.py"
@@ -17,10 +17,12 @@ DPPVCF_SCRIPT = "python /nfs/users/nfs_s/sd11/repo/dirichlet_preprocessing/dpIn2
 DPP_SCRIPT = "python /nfs/users/nfs_s/sd11/repo/dirichlet_preprocessing/dirichlet_preprocessing.py"
 #DPP_SCRIPT = "python /nfs/users/nfs_s/sd11/software/pipelines/dirichlet_preprocessing_v1.0/dirichlet_preprocessing.py"
 
-REF_GENOME = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/refs_icgc_pancan/genome.fa"
-CHROMS_FAI = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/refs_icgc_pancan/genome.fa.fai"
-IGNORE_FILE = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_ignore/ignore.txt"
-IGNORE_FILE_PHASE = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_ignore/ignore_mut_cn_phasing.txt"
+REF_GENOME = "/lustre/scratch116/casm/cgp/pancancer/reference/genome.fa"
+CHROMS_FAI = "/lustre/scratch116/casm/cgp/pancancer/reference/genome.fa.fai"
+#IGNORE_FILE = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_ignore/ignore.txt"
+IGNORE_FILE = "/lustre/scratch116/casm/team113/sd11/reference/GenomeFiles/battenberg_ignore/ignore.txt"
+#IGNORE_FILE_PHASE = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_ignore/ignore_mut_cn_phasing.txt"
+IGNORE_FILE_PHASE = "/lustre/scratch116/casm/team113/sd11/reference/GenomeFiles/battenberg_ignore/ignore_mut_cn_phasing.txt"
 
 TRINUCLEOTIDECOLUMN = 5 # Trinucleotide context is annotated in to the loci and is available in this column
 ALTALLELECOLUMN = 4
@@ -460,6 +462,8 @@ def dp_preprocessing_icgc_pipeline(samplename, vcf_file, baf_file, hap_info_pref
 		cmd = createDumpCountsMuseCmd(samplename, vcf_file, run_dir)
 	elif icgc_pipeline=="icgc_cons":
 		cmd = createDumpCountsICGCconsensusCmd(samplename, vcf_file, run_dir)
+	elif icgc_pipeline=="none":
+		cmd = "echo Expecting counts"
 	outf.write(generateBsubCmd("dumpCounts_"+samplename, log_dir, cmd, queue="basement", mem=10, depends=None, isArray=False) + "\n")
 	
 	'''
@@ -649,6 +653,7 @@ def main(argv):
 	parser.add_argument("--broad", action="store_true", help="Run preprocessing on the ICGC Broad pipeline output")
 	parser.add_argument("--dkfz", action="store_true", help="Run preprocessing on the ICGC DKFZ pipeline output")
 	parser.add_argument("--muse", action="store_true", help="Run preprocessing on the ICGC Muse caller output")
+	parser.add_argument("--no_dump", action="store_true", help="Do not perform dumping, the pipeline expects the counts on disk")
 	parser.add_argument("--mutect", action="store_true", help="Do not perform allele counting, but dump counts from a Mutect VCF file")
 	parser.add_argument("--filter_deaminase", action="store_true", help="Only keep deaminase mutations")
 
@@ -677,13 +682,16 @@ def main(argv):
 	
 	# read in a samplesheet
 	samples = _readSampleSheet(args.s)
-	
+
 	runscripts_sample = []
 	for i in range(0,len(samples)):
 		donor = samples[i][0]
 		samplename = samples[i][1]
 		print(samplename)
-
+		print(samplename=="tumour_id")
+		if samplename=="tumour_id":
+			continue
+		print("AFTER")
 
 		# Fetch all vcf files from this donor, in case of multi-sample case
 		vcf_file = [samples[i][2]]
@@ -723,7 +731,7 @@ def main(argv):
 			if args.sanger+args.dkfz+args.broad+args.muse+args.icgc_cons > 1:
 				print("Please provide only one of the ICGC pipeline options")
 				sys.exit(1)
-			if args.sanger+args.dkfz+args.broad+args.muse+args.icgc_cons == 0:
+			if args.sanger+args.dkfz+args.broad+args.muse+args.icgc_cons+args.no_dump == 0:
 				print("Please supply one of the ICGC pipeline parameters")
 				sys.exit(1)
 			if args.sanger:
@@ -736,6 +744,8 @@ def main(argv):
 				icgc_pipeline = "muse"
 			elif args.icgc_cons:
 				icgc_pipeline = "icgc_cons"
+			elif args.no_dump:
+				icgc_pipeline = "none"
 				
 			# ICGC preprocessing pipeline that dumps allele counts from VCF and doesn't do phasing
 			runscript = dp_preprocessing_icgc_pipeline(samplename=samplename, 
