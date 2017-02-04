@@ -16,6 +16,7 @@ def generateDPDataFile(proj_name, infile, dp_in_dir, run_dir):
 	dp_in_files = np.array(path(dp_in_dir).listdir("*allDirichletProcessInfo.txt"))
 	cn_dp_in_files = np.array(path(dp_in_dir).listdir("*cnDirichletInput.txt"))
 	indel_dp_in_files = np.array(path(dp_in_dir).listdir("*indelDpInput.txt"))
+	print(indel_dp_in_files)
 	
 	outfile = open(path.joinpath(run_dir, proj_name+".txt"), 'w')	
 	outfile.write("sample\tsubsample\tdatafile\tcellularity\tsex\tcndatafile\tindeldatafile\n")
@@ -41,14 +42,14 @@ def generateDPDataFile(proj_name, infile, dp_in_dir, run_dir):
 				
 			# Adding in indel input files
 			if len(indel_dp_in_files) == 0:
-				indel_dp_in_files = np.array(["NA"])
+				indel_dp_in_file = np.array(["NA"])
 			else:
-				indel_dp_in_files = indel_dp_in_files[np.array([tumour in item for item in indel_dp_in_files])]
-			if len(indel_dp_in_files) > 1:
+				indel_dp_in_file = indel_dp_in_files[np.array([tumour in item for item in indel_dp_in_files])]
+			if len(indel_dp_in_file) > 1:
 				print("Found more than one indel dp input matches for "+tumour)
 				continue
-			elif len(indel_dp_in_files) == 0:
-				indel_dp_in_files = np.array(["NA"])
+			elif len(indel_dp_in_file) == 0:
+				indel_dp_in_file = np.array(["NA"])
 
 			if ss.getSex(tumour) is None:
 				sex = "male"
@@ -56,7 +57,7 @@ def generateDPDataFile(proj_name, infile, dp_in_dir, run_dir):
 				sex = ss.getSex(tumour)
 
 			if tumour in tumour2purity.keys():
-				lines = lines + [sample+"\t"+tumour+"\t"+path(dp_in_file[0]).basename()+"\t"+tumour2purity[tumour]+"\t"+sex+"\t"+path(cn_dp_in_file[0]).basename()+"\t"+path(indel_dp_in_files[0]).basename()+"\n"]
+				lines = lines + [sample+"\t"+tumour+"\t"+path(dp_in_file[0]).basename()+"\t"+tumour2purity[tumour]+"\t"+sex+"\t"+path(cn_dp_in_file[0]).basename()+"\t"+path(indel_dp_in_file[0]).basename()+"\n"]
 			else:
 				print("Did not find purity estimate for "+tumour)
 
