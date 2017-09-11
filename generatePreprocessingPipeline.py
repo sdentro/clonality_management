@@ -194,10 +194,11 @@ def createDpInputCmd(samplename, loci_file, allele_freq_file, subclone_file, rho
 						"-b", bb_dir,
 						"-r", run_dir]))
 	
-def createKataegisCmd(samplename, run_dir):
+def createKataegisCmd(samplename, run_dir, dpinput_file):
 	return(merge_items([DPP_SCRIPT, "-c identifyKataegis",
 						"-s", samplename,
-						"-o", samplename+"_allDirichletProcessInfo.txt",
+						#"-o", samplename+"_allDirichletProcessInfo.txt",
+						"-o", dpinput_file,
 						"-r", run_dir]))
 	
 def createDpIn2VcfCmd(vcf_file, dpIn_file, outfile, fai_file, ignore_file):
@@ -391,7 +392,7 @@ def dp_preprocessing_pipeline(samplename, vcf_file, bam_file, bai_file, baf_file
 	'''
 	########################################################### Kataegis ###########################################################
 	'''
-	cmd = createKataegisCmd(samplename, run_dir)
+	cmd = createKataegisCmd(samplename, run_dir, samplename+"_allDirichletProcessInfo.txt")
 	outf.write(generateBsubCmd("kataegis_"+samplename, log_dir, cmd, queue="normal", mem=2, depends=["dpIn_"+samplename], isArray=False) + "\n")
 
 	'''
@@ -475,7 +476,7 @@ def dp_preprocessing_icgc_pipeline(samplename, vcf_file, baf_file, hap_info_pref
 	'''
 	########################################################### Kataegis ###########################################################
 	'''
-	cmd = createKataegisCmd(samplename, run_dir)
+	cmd = createKataegisCmd(samplename, run_dir, samplename+"_allDirichletProcessInfo.txt")
 	outf.write(generateBsubCmd("kataegis_"+samplename, log_dir, cmd, queue="normal", mem=2, depends=["dpIn_"+samplename], isArray=False) + "\n")
 
 	'''
@@ -531,6 +532,12 @@ def dp_preprocessing_icgc_indel_pipeline(samplename, vcf_file, subclone_file, rh
 	'''
 	cmd = createDpInputCmd(samplename, samplename+afloci_file_postfix, samplename+"_alleleIndelFrequency.txt", subclone_file, rho_psi_file, "NA", "NA", samplename+"_indelDpInput.txt", gender, bb_dir, run_dir)
 	outf.write(generateBsubCmd("dpIn_"+samplename, log_dir, cmd, queue="normal", mem=2, depends=[dpin_depends_on, "dumpCounts_"+samplename], isArray=False) + "\n")
+	
+        '''
+        ########################################################### Kataegis ###########################################################
+        '''
+        cmd = createKataegisCmd(samplename, run_dir, samplename+"_indelDpInput.txt")
+        outf.write(generateBsubCmd("kataegis_"+samplename, log_dir, cmd, queue="normal", mem=2, depends=["dpIn_"+samplename], isArray=False) + "\n")
 
 	outf.close()
 	
