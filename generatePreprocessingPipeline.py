@@ -144,6 +144,16 @@ def createDumpCountscgpPindelCmd(samplename, vcf_file, run_dir, dummy_alt_allele
                                                 "-o", samplename+"_alleleIndelFrequency.txt",
                                                 "--dummy_alt_allele", dummy_alt_allele,
                                                 "--dummy_ref_allele", dummy_ref_allele]))
+
+
+def createDumpCountsScalpelCmd(samplename, vcf_file, run_dir, dummy_alt_allele, dummy_ref_allele):
+		return(merge_items([DPP_SCRIPT, "-c dumpCountsScalpel",
+						"-s", samplename,
+						"-v", vcf_file,
+						"-r", run_dir,
+						"-o", samplename+"_alleleIndelFrequency.txt",
+						"--dummy_alt_allele", dummy_alt_allele,
+						"--dummy_ref_allele", dummy_ref_allele]))
 	
 def createDumpCountsMutectCmd(samplename, vcf_file, run_dir):
 	return(merge_items([DPP_SCRIPT, "-c dumpCountsMutect",
@@ -549,7 +559,9 @@ def dp_preprocessing_icgc_indel_pipeline(samplename, vcf_file, subclone_file, rh
 	elif caller=="strelka_indel":
 		cmd = createDumpCountsStrelkaIndelCmd(samplename, vcf_file, run_dir, dummy_alt_allele="A", dummy_ref_allele="C")
 	elif caller=="cgpPindel":
-		createDumpCountscgpPindelCmd(samplename, vcf_file, run_dir, dummy_alt_allele="A", dummy_ref_allele="C")
+		cmd = createDumpCountscgpPindelCmd(samplename, vcf_file, run_dir, dummy_alt_allele="A", dummy_ref_allele="C")
+	elif caller=="scalpel_indel":
+		cmd = createDumpCountsScalpelCmd(samplename, vcf_file, run_dir, dummy_alt_allele="A", dummy_ref_allele="C")
 
 	outf.write(generateBsubCmd("dumpCounts_"+samplename, log_dir, cmd, queue="basement", mem=10, depends=None, isArray=False) + "\n")
 
