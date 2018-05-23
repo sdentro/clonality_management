@@ -684,6 +684,7 @@ def main(argv):
 	parser.add_argument("--cgppindel", action="store_true", help="Run preprocessing on the cgpPindel output")
 	parser.add_argument("--no_dump", action="store_true", help="Do not perform dumping, the pipeline expects the counts on disk")
 	parser.add_argument("--mutect", action="store_true", help="Run preprocessing on Mutect output")
+	parser.add_argument("--scalpel", action="store_true", help="Run preprocessing on Scalpel output")
 
 	# Additional variables - other
 	parser.add_argument("--phasing", action="store_true", help="Perform phasing")
@@ -834,18 +835,20 @@ def main(argv):
 		elif (args.indel_pipeline):
 			assert indel_vcf_file is not None, "Indel VCF column in preproc input file must be defined when running indel pipeline"
 
-			if args.strelka+args.icgc_cons+args.cgppindel > 1:
+			if args.strelka+args.icgc_cons+args.cgppindel+args.scalpel > 1:
 				print("Please provide only one of the ICGC pipeline options")
 				sys.exit(1)
-			if args.strelka+args.icgc_cons+args.cgppindel == 0:
+			if args.strelka+args.icgc_cons+args.cgppindel+args.scalpel == 0:
 				print("Please supply one of the ICGC indel pipeline parameters")
 				sys.exit(1)
 			if args.strelka:
 				caller = "strelka_indel"
 			elif args.icgc_cons:
 				caller = "icgc_cons_indel"
-			elif args.+args.cgppindel:
+			elif args.cgppindel:
 				caller = "cgpPindel"
+			elif args.scalpel:
+				caller = "scalpel_indel"
 
 			runscript = dp_preprocessing_icgc_indel_pipeline(samplename=samplename,
 															vcf_file=indel_vcf_file,
