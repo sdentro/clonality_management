@@ -58,3 +58,4 @@ python ~/repo/generateClonalityPipeline/generateQCrunScript.py -i $PWD/dirichlet
 
 ## Create the run scripts
 python ~/repo/generateClonalityPipeline/generateDPrunScript.py -i $PWD/dirichlet/test.txt -d $PWD/dirichlet_input/ -r $PWD/dirichlet -p test
+=======
