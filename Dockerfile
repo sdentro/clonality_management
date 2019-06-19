@@ -26,4 +26,6 @@ curl -sSL --retry 10 https://bootstrap.pypa.io/get-pip.py -o /tmp/downloads/pip/
 cd /tmp/downloads/pip && \
 python get-pip.py pip==19.1.1
 
-RUN pip install numpy==1.8.2 pandas==0.14.1 argparse==1.2.1
+RUN pip install numpy==1.8.2 pandas==0.14.1 argparse==1.2.1 path.py==5.1
+
+COPY *.py /usr/local/bin/
