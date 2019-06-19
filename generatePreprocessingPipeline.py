@@ -17,12 +17,12 @@ DPPVCF_SCRIPT = "python /nfs/users/nfs_s/sd11/repo/dirichlet_preprocessing/dpIn2
 DPP_SCRIPT = "python /nfs/users/nfs_s/sd11/repo/dirichlet_preprocessing/dirichlet_preprocessing.py"
 #DPP_SCRIPT = "python /nfs/users/nfs_s/sd11/software/pipelines/dirichlet_preprocessing_v1.0/dirichlet_preprocessing.py"
 
-REF_GENOME = "/lustre/scratch116/casm/cgp/pancancer/reference/genome.fa"
-CHROMS_FAI = "/lustre/scratch116/casm/cgp/pancancer/reference/genome.fa.fai"
+REF_GENOME = "/nfs/users/nfs_s/sd11/scratch17_t219/reference/GenomeFiles/refs_icgc_pancan/genome.fa"
+CHROMS_FAI = "/nfs/users/nfs_s/sd11/scratch17_t219/reference/GenomeFiles/refs_icgc_pancan/genome.fa.fai"
 #IGNORE_FILE = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_ignore/ignore.txt"
-IGNORE_FILE = "/lustre/scratch116/casm/team113/sd11/reference/GenomeFiles/battenberg_ignore/ignore.txt"
+IGNORE_FILE = "/nfs/users/nfs_s/sd11/scratch17_t219/reference/GenomeFiles/battenberg_ignore/ignore.txt"
 #IGNORE_FILE_PHASE = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_ignore/ignore_mut_cn_phasing.txt"
-IGNORE_FILE_PHASE = "/lustre/scratch116/casm/team113/sd11/reference/GenomeFiles/battenberg_ignore/ignore_mut_cn_phasing.txt"
+IGNORE_FILE_PHASE = "/nfs/users/nfs_s/sd11/scratch17_t219/reference/GenomeFiles/battenberg_ignore/ignore_mut_cn_phasing.txt"
 
 TRINUCLEOTIDECOLUMN = 5 # Trinucleotide context is annotated in to the loci and is available in this column
 ALTALLELECOLUMN = 4
