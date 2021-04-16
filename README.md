@@ -1,6 +1,23 @@
 # generateClonalityPipeline
 A series of example scripts/commands to create the full project setup.
 
+## Docker build
+docker build -t cm:0.0.1 .
+
+mkdir sandbox
+cd sandbox
+cp -R ../test/ .
+docker run -it -v /home/centos/docker_containers/clonality_management/sandbox:/mnt/testing cm:0.0.1
+
+## Dry run
+
+cd /mnt/testing/
+setupProject.py -b $PWD/
+cp test/* samplesheet/input/
+
+cd samplesheet/input
+python ~/repo/generateClonalityPipeline/generateSamplesheet.py -s samplenames.lst  --bt tumourbam.lst --bn normalbam.lst --idt tumourid.lst --idn normalid.lst -v variants.lst -b bb_dirs.lst --vcf_indel indels.lst -x sex.lst -o ../output/test.txt
+
 ## Setup the directory
 cd /lustre/scratch110/sanger/sd11
 mkdir dp_test
